@@ -588,6 +588,28 @@ body {
 }
 
 /* ==========================================================================
+   Favorites Section
+   ========================================================================== */
+
+.favorites-section {
+    padding: var(--spacing-md);
+    padding-bottom: 0;
+}
+
+.favorites-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-sm);
+}
+
+.favorites-items {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* ==========================================================================
    Tab View
    ========================================================================== */
 

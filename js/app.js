@@ -228,7 +228,6 @@ const App = {
         if (!guestName) return [];
 
         const tab = Storage.getGuestTab(guestName);
-        console.log('Favorites check for', guestName, '- total drinks:', tab.drinks ? tab.drinks.length : 0, tab);
         if (!tab.drinks || tab.drinks.length < 5) return [];
 
         // Count occurrences of each item
@@ -243,13 +242,27 @@ const App = {
             .sort((a, b) => b[1] - a[1])
             .slice(0, 2)
             .map(([name]) => {
-                // Find the price for this item
+                // Find the price and original category color for this item
                 const drink = tab.drinks.find(d => d.name === name);
-                return { name, price: drink.price };
+                const color = this.getItemCategoryColor(name);
+                return { name, price: drink.price, color };
             });
 
-        console.log('Counts:', counts, 'Favorites:', favorites);
         return favorites;
+    },
+
+    /**
+     * Find the category color for a drink item.
+     */
+    getItemCategoryColor(itemName) {
+        for (const category of DRINK_CATEGORIES) {
+            const found = category.items.some(item => {
+                const name = typeof item === 'string' ? item : item.name;
+                return name === itemName;
+            });
+            if (found) return category.color;
+        }
+        return '#666'; // Default gray if not found
     },
 
     /**
@@ -259,17 +272,16 @@ const App = {
         const favorites = this.getGuestFavorites(this.selectedGuest);
         if (favorites.length === 0) return;
 
-        const categoryDiv = document.createElement('div');
-        categoryDiv.className = 'drink-category favorites-category';
+        const favoritesDiv = document.createElement('div');
+        favoritesDiv.className = 'favorites-section';
 
-        const header = document.createElement('div');
-        header.className = 'category-header';
-        header.style.backgroundColor = '#e91e63'; // Pink/magenta color for favorites
-        header.innerHTML = `<span class="category-name">Jouw favorieten:</span>`;
-        categoryDiv.appendChild(header);
+        const title = document.createElement('div');
+        title.className = 'favorites-title';
+        title.textContent = 'Jouw favorieten:';
+        favoritesDiv.appendChild(title);
 
         const itemsDiv = document.createElement('div');
-        itemsDiv.className = 'category-items';
+        itemsDiv.className = 'favorites-items';
 
         favorites.forEach(item => {
             const btn = document.createElement('button');
@@ -278,15 +290,15 @@ const App = {
                 <span class="drink-btn-name">${item.name}</span>
                 <span class="drink-btn-price">${this.formatPrice(item.price)}</span>
             `;
-            btn.style.setProperty('--category-color', '#e91e63');
+            btn.style.setProperty('--category-color', item.color);
             btn.dataset.drink = item.name;
             btn.dataset.price = item.price;
             btn.addEventListener('click', () => this.addDrink(item.name, item.price));
             itemsDiv.appendChild(btn);
         });
 
-        categoryDiv.appendChild(itemsDiv);
-        container.appendChild(categoryDiv);
+        favoritesDiv.appendChild(itemsDiv);
+        container.appendChild(favoritesDiv);
     },
 
     /**
