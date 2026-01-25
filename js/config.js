@@ -1,18 +1,18 @@
 /**
- * CAMPSITE HONESTY BAR - CONFIGURATION
+ * CAMPING DU LAC - HONESTY BAR CONFIGURATIE
  *
- * Edit this file to update guest names and drink prices each week.
+ * Bewerk dit bestand om gastnamen en drankprijzen aan te passen.
  */
 
 // =============================================================================
-// GUEST NAMES
+// GASTNAMEN
 // =============================================================================
-// Change this list at the start of each new week.
-// You can have up to 50 guests. Add or remove names as needed.
-// Names will appear as buttons in the order listed here.
+// Wijzig deze lijst aan het begin van elke nieuwe week.
+// Je kunt maximaal 50 gasten toevoegen. Voeg namen toe of verwijder ze indien nodig.
+// Namen verschijnen als knoppen in de onderstaande volgorde.
 
 const GUEST_NAMES = [
-    // Row 1 - Example family groups
+    // Rij 1 - Voorbeeldfamilies
     "Van den Berg",
     "Jansen Familie",
     "De Vries",
@@ -24,7 +24,7 @@ const GUEST_NAMES = [
     "Mulder",
     "De Groot",
 
-    // Row 2
+    // Rij 2
     "Bos Familie",
     "Vos",
     "Peters",
@@ -36,7 +36,7 @@ const GUEST_NAMES = [
     "Van Leeuwen",
     "Koster",
 
-    // Row 3
+    // Rij 3
     "Vermeer",
     "Van der Meer",
     "Dijkstra",
@@ -48,7 +48,7 @@ const GUEST_NAMES = [
     "Dekker",
     "De Wit",
 
-    // Row 4
+    // Rij 4
     "Scholten",
     "Van der Berg",
     "Post",
@@ -60,120 +60,102 @@ const GUEST_NAMES = [
     "Maas",
     "Van der Linden",
 
-    // Row 5 - Add more names below as needed
-    "Tent 41",
-    "Tent 42",
-    "Tent 43",
-    "Tent 44",
-    "Tent 45",
-    "Tent 46",
-    "Tent 47",
-    "Tent 48",
-    "Tent 49",
-    "Tent 50"
+    // Rij 5 - Voeg meer namen toe indien nodig
+    "Plek 41",
+    "Plek 42",
+    "Plek 43",
+    "Plek 44",
+    "Plek 45",
+    "Plek 46",
+    "Plek 47",
+    "Plek 48",
+    "Plek 49",
+    "Plek 50"
 ];
 
 // =============================================================================
-// DRINK CATEGORIES AND PRICES
+// DRANKCATEGORIEËN EN PRIJZEN
 // =============================================================================
-// Edit prices or add new drink items here.
-// Each category has a name, price (in euros), and optional color for styling.
-// The 'items' array lists the individual drinks shown on buttons.
+// Bewerk prijzen of voeg nieuwe drankjes toe.
+// Elke categorie heeft een naam, prijs (in euro's) en een optionele kleur.
 
 const DRINK_CATEGORIES = [
     {
-        name: "Snacks & Small Drinks",
+        name: "Snacks & Kleine drankjes",
         price: 1.50,
-        color: "#4CAF50", // Green
+        color: "#2D5A27", // Forest green
         items: [
             "Chips",
             "Snacks",
-            "Small Water",
-            "Tea",
-            "Coffee"
+            "Klein water",
+            "Thee",
+            "Koffie"
         ]
     },
     {
-        name: "Soft Drinks",
+        name: "Frisdrank & Water",
         price: 2.00,
-        color: "#2196F3", // Blue
+        color: "#1E6B8C", // Lake blue
         items: [
-            "Cola",
-            "Fanta",
-            "Sprite",
-            "Ice Tea",
-            "Large Water",
-            "Juice"
+            "Fris",
+            "Groot water"
         ]
     },
     {
-        name: "Regular Beer & Wine",
+        name: "Bier & Wijn per glas",
         price: 2.50,
-        color: "#FF9800", // Orange
+        color: "#8B6914", // Amber/beer color
         items: [
-            "1664 Beer",
-            "1664 Beer 0.0",
-            "Glass of Wine (Red)",
-            "Glass of Wine (White)",
-            "Glass of Wine (Rosé)"
+            "1664 Bier",
+            "1664 Bier 0.0",
+            "Glas wijn"
         ]
     },
     {
-        name: "Special Drinks",
+        name: "Specials & Mixers",
         price: 4.00,
-        color: "#9C27B0", // Purple
+        color: "#7B3B3B", // Deep red
         items: [
-            "Special Beer",
-            "Red Bull",
+            "Speciaal bier",
+            "Redbull",
             "IPA",
-            "Desperados"
+            "Desperados",
+            "Mixer (rum etc.)"
         ]
     },
     {
-        name: "Spirits",
-        price: 4.00,
-        color: "#E91E63", // Pink
-        items: [
-            "Vodka",
-            "Rum",
-            "Whiskey",
-            "Gin"
-        ]
-    },
-    {
-        name: "Bottles",
+        name: "Flessen",
         price: 10.00,
-        color: "#795548", // Brown
+        color: "#5C3D2E", // Wine brown
         items: [
-            "Bottle of Wine (Red)",
-            "Bottle of Wine (White)",
-            "Bottle of Wine (Rosé)"
+            "Fles wijn"
         ]
     }
 ];
 
 // =============================================================================
-// APP SETTINGS
+// APP INSTELLINGEN
 // =============================================================================
 
 const APP_CONFIG = {
-    // How long the undo button stays visible (in milliseconds)
+    // Hoe lang de ongedaan-knop zichtbaar blijft (in milliseconden)
     undoTimeoutMs: 8000,
 
-    // Currency symbol
+    // Valutasymbool
     currency: "€",
 
-    // Locale for number formatting (e.g., "nl-NL" for Dutch, "en-US" for US)
+    // Locale voor getalnotatie (bijv. "nl-NL" voor Nederlands)
     locale: "nl-NL",
 
-    // App title shown in header
-    appTitle: "Campsite Honesty Bar",
+    // App-titel in de header
+    appTitle: "Camping du Lac",
+    appSubtitle: "Honesty Bar",
 
-    // Storage key prefix for localStorage
-    storagePrefix: "campsiteBar_"
+    // Opslagsleutel prefix voor localStorage
+    storagePrefix: "campingDuLac_"
 };
 
-// Export for use in other modules (works in browser without module bundler)
+// Export voor gebruik in andere modules
 if (typeof window !== 'undefined') {
     window.GUEST_NAMES = GUEST_NAMES;
     window.DRINK_CATEGORIES = DRINK_CATEGORIES;

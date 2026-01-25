@@ -1,8 +1,8 @@
 /**
- * CAMPSITE HONESTY BAR - STORAGE MODULE
+ * CAMPING DU LAC - OPSLAG MODULE
  *
- * Handles all data persistence using browser localStorage.
- * Data survives page refreshes but is cleared when browser data is cleared.
+ * Beheert alle gegevenspersistentie met browser localStorage.
+ * Data blijft behouden na pagina-verversing maar wordt gewist bij browser data reset.
  */
 
 const Storage = {
@@ -201,7 +201,7 @@ const Storage = {
      */
     exportCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Guest Name,Total (EUR),Paid,Number of Drinks\n";
+        let csv = "Gast,Totaal (EUR),Betaald,Aantal\n";
 
         // Sort by name
         const sortedNames = Object.keys(tabs).sort();
@@ -210,7 +210,7 @@ const Storage = {
             const tab = tabs[name];
             if (tab.drinks.length > 0) {
                 const total = tab.total.toFixed(2).replace('.', ',');
-                const paid = tab.paid ? "Yes" : "No";
+                const paid = tab.paid ? "Ja" : "Nee";
                 csv += `"${name}",${total},${paid},${tab.drinks.length}\n`;
             }
         });
@@ -223,7 +223,7 @@ const Storage = {
      */
     exportDetailedCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Guest Name,Drink,Price (EUR),Date/Time\n";
+        let csv = "Gast,Item,Prijs (EUR),Datum/Tijd\n";
 
         const sortedNames = Object.keys(tabs).sort();
 

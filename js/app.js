@@ -1,13 +1,14 @@
 /**
- * CAMPSITE HONESTY BAR - MAIN APPLICATION
+ * CAMPING DU LAC - HONESTY BAR
  *
- * Handles the main user interface for ordering drinks.
+ * Hoofdapplicatie voor het bestellen van drankjes.
  */
 
 const App = {
     selectedGuest: null,
     lastAddedDrink: null,
     undoTimeout: null,
+    currentView: 'guests',
 
     /**
      * Initialize the application.
@@ -21,11 +22,12 @@ const App = {
         this.renderDrinkButtons();
         this.setupEventListeners();
 
-        // Update header title
+        // Update header
         document.getElementById('app-title').textContent = APP_CONFIG.appTitle;
+        document.getElementById('app-subtitle').textContent = APP_CONFIG.appSubtitle;
 
         // Show default view
-        this.showView('order');
+        this.showView('guests');
     },
 
     /**
@@ -39,6 +41,8 @@ const App = {
      * Show a specific view/screen.
      */
     showView(viewName) {
+        this.currentView = viewName;
+
         // Hide all views
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 
@@ -48,9 +52,10 @@ const App = {
             view.classList.add('active');
         }
 
-        // Update nav buttons
+        // Update nav buttons - map drinks view to guests nav button
+        const navViewName = viewName === 'drinks' ? 'guests' : viewName;
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === viewName);
+            btn.classList.toggle('active', btn.dataset.view === navViewName);
         });
 
         // Handle view-specific setup
@@ -58,7 +63,17 @@ const App = {
             this.renderTabView();
         } else if (viewName === 'admin') {
             Admin.renderAdminView();
+        } else if (viewName === 'guests') {
+            this.renderGuestButtons();
         }
+    },
+
+    /**
+     * Go back to guest selection.
+     */
+    goBackToGuests() {
+        this.selectedGuest = null;
+        this.showView('guests');
     },
 
     /**
@@ -73,13 +88,16 @@ const App = {
         GUEST_NAMES.forEach(name => {
             const btn = document.createElement('button');
             btn.className = 'guest-btn';
-            btn.textContent = name;
             btn.dataset.guest = name;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'guest-btn-name';
+            nameSpan.textContent = name;
+            btn.appendChild(nameSpan);
 
             // Add paid indicator
             if (tabs[name] && tabs[name].paid) {
                 btn.classList.add('paid');
-                btn.title = 'This guest has paid';
             }
 
             // Add total if any
@@ -121,8 +139,11 @@ const App = {
             category.items.forEach(item => {
                 const btn = document.createElement('button');
                 btn.className = 'drink-btn';
-                btn.textContent = item;
-                btn.style.borderColor = category.color;
+                btn.innerHTML = `
+                    <span class="drink-btn-name">${item}</span>
+                    <span class="drink-btn-price">${this.formatPrice(category.price)}</span>
+                `;
+                btn.style.setProperty('--category-color', category.color);
                 btn.dataset.drink = item;
                 btn.dataset.price = category.price;
                 btn.addEventListener('click', () => this.addDrink(item, category.price));
@@ -135,38 +156,30 @@ const App = {
     },
 
     /**
-     * Select a guest.
+     * Select a guest and go to drinks view.
      */
     selectGuest(name) {
-        this.selectedGuest = name;
-
-        // Update UI to show selection
-        document.querySelectorAll('.guest-btn').forEach(btn => {
-            btn.classList.toggle('selected', btn.dataset.guest === name);
-        });
-
-        // Update selected guest display
-        const display = document.getElementById('selected-guest-display');
         const tab = Storage.getGuestTab(name);
 
+        // Check if guest has paid
         if (tab.paid) {
-            display.innerHTML = `
-                <strong>${name}</strong>
-                <span class="paid-badge">PAID</span>
-                <span class="guest-current-total">${this.formatPrice(tab.total)}</span>
-            `;
-            display.classList.add('guest-paid');
-        } else {
-            display.innerHTML = `
-                <strong>${name}</strong>
-                <span class="guest-current-total">${this.formatPrice(tab.total)}</span>
-            `;
-            display.classList.remove('guest-paid');
+            this.showMessage(
+                `${name} heeft al betaald`,
+                'Er kunnen geen bestellingen meer worden toegevoegd.',
+                'warning'
+            );
+            return;
         }
-        display.classList.add('has-selection');
 
-        // Hide any existing notification
-        this.hideNotification();
+        this.selectedGuest = name;
+
+        // Update selected guest display in drinks view
+        document.getElementById('selected-guest-name').textContent = name;
+        document.getElementById('selected-guest-total').textContent =
+            tab.total > 0 ? `Huidig: ${this.formatPrice(tab.total)}` : '';
+
+        // Go to drinks view
+        this.showView('drinks');
     },
 
     /**
@@ -174,13 +187,16 @@ const App = {
      */
     addDrink(drinkName, price) {
         if (!this.selectedGuest) {
-            this.showNotification('Please select your name first!', 'warning');
             return;
         }
 
         const tab = Storage.getGuestTab(this.selectedGuest);
         if (tab.paid) {
-            this.showNotification(`${this.selectedGuest} has already paid. No more drinks can be added.`, 'warning');
+            this.showMessage(
+                'Niet mogelijk',
+                `${this.selectedGuest} heeft al betaald.`,
+                'warning'
+            );
             return;
         }
 
@@ -188,7 +204,7 @@ const App = {
         const drinkEntry = Storage.addDrink(this.selectedGuest, drinkName, price);
 
         if (!drinkEntry) {
-            this.showNotification('Could not add drink. Please try again.', 'error');
+            this.showMessage('Fout', 'Kon drankje niet toevoegen. Probeer opnieuw.', 'error');
             return;
         }
 
@@ -198,27 +214,81 @@ const App = {
             drink: drinkEntry
         };
 
-        // Update the UI
+        // Get updated total
         const updatedTab = Storage.getGuestTab(this.selectedGuest);
 
-        // Show confirmation with undo button
-        this.showNotification(
-            `Added one <strong>${drinkName}</strong> for <strong>${this.selectedGuest}</strong>.<br>
-             Total for this guest is now <strong>${this.formatPrice(updatedTab.total)}</strong>.`,
-            'success',
-            true // Show undo button
-        );
+        // Show success overlay
+        this.showSuccessOverlay(drinkName, this.selectedGuest, updatedTab.total);
 
-        // Update guest buttons to show new total
-        this.renderGuestButtons();
-        this.selectGuest(this.selectedGuest);
+        // Update the guest total in drinks view
+        document.getElementById('selected-guest-total').textContent =
+            `Huidig: ${this.formatPrice(updatedTab.total)}`;
 
         // Set timeout to hide undo option
         this.clearUndoTimeout();
         this.undoTimeout = setTimeout(() => {
             this.lastAddedDrink = null;
-            this.hideUndoButton();
+            this.hideSuccessOverlay();
         }, APP_CONFIG.undoTimeoutMs);
+    },
+
+    /**
+     * Show success overlay with drink confirmation.
+     */
+    showSuccessOverlay(drinkName, guestName, total) {
+        const overlay = document.getElementById('success-overlay');
+        overlay.querySelector('.success-drink-name').textContent = drinkName;
+        overlay.querySelector('.success-message').textContent = `toegevoegd voor ${guestName}`;
+        overlay.querySelector('.success-total').textContent = `Totaal: ${this.formatPrice(total)}`;
+
+        // Set up undo button
+        const undoBtn = overlay.querySelector('.undo-btn');
+        undoBtn.onclick = () => this.undoLastDrink();
+
+        overlay.classList.add('show');
+    },
+
+    /**
+     * Hide success overlay.
+     */
+    hideSuccessOverlay() {
+        const overlay = document.getElementById('success-overlay');
+        overlay.classList.remove('show');
+    },
+
+    /**
+     * Show a message (for warnings/errors).
+     */
+    showMessage(title, message, type = 'info') {
+        const overlay = document.getElementById('success-overlay');
+        const iconSvg = overlay.querySelector('.success-icon svg');
+
+        // Change icon based on type
+        if (type === 'warning' || type === 'error') {
+            iconSvg.innerHTML = `
+                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
+                <line x1="50" y1="30" x2="50" y2="55" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+                <circle cx="50" cy="70" r="4" fill="currentColor"/>
+            `;
+        }
+
+        overlay.querySelector('.success-drink-name').textContent = title;
+        overlay.querySelector('.success-message').textContent = message;
+        overlay.querySelector('.success-total').textContent = '';
+        overlay.querySelector('.undo-btn').style.display = 'none';
+
+        overlay.classList.add('show', type);
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            overlay.classList.remove('show', type);
+            overlay.querySelector('.undo-btn').style.display = '';
+            // Restore checkmark icon
+            iconSvg.innerHTML = `
+                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
+                <path d="M30 50 L45 65 L70 35" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            `;
+        }, 3000);
     },
 
     /**
@@ -236,18 +306,26 @@ const App = {
 
         if (success) {
             const updatedTab = Storage.getGuestTab(guestName);
-            this.showNotification(
-                `Removed <strong>${drink.name}</strong> from <strong>${guestName}</strong>'s tab.<br>
-                 Total is now <strong>${this.formatPrice(updatedTab.total)}</strong>.`,
-                'info',
-                false
-            );
 
-            // Update UI
-            this.renderGuestButtons();
+            // Update displays
             if (this.selectedGuest === guestName) {
-                this.selectGuest(guestName);
+                document.getElementById('selected-guest-total').textContent =
+                    updatedTab.total > 0 ? `Huidig: ${this.formatPrice(updatedTab.total)}` : '';
             }
+
+            // Update overlay to show undo confirmation
+            const overlay = document.getElementById('success-overlay');
+            overlay.querySelector('.success-drink-name').textContent = 'Ongedaan gemaakt';
+            overlay.querySelector('.success-message').textContent = `${drink.name} verwijderd`;
+            overlay.querySelector('.success-total').textContent =
+                updatedTab.total > 0 ? `Totaal: ${this.formatPrice(updatedTab.total)}` : 'Totaal: €0,00';
+            overlay.querySelector('.undo-btn').style.display = 'none';
+
+            // Auto-hide after 2 seconds
+            setTimeout(() => {
+                this.hideSuccessOverlay();
+                overlay.querySelector('.undo-btn').style.display = '';
+            }, 2000);
         }
 
         // Clear undo state
@@ -266,40 +344,6 @@ const App = {
     },
 
     /**
-     * Hide the undo button in the notification.
-     */
-    hideUndoButton() {
-        const undoBtn = document.querySelector('.undo-btn');
-        if (undoBtn) {
-            undoBtn.style.display = 'none';
-        }
-    },
-
-    /**
-     * Show a notification message.
-     */
-    showNotification(message, type = 'info', showUndo = false) {
-        const container = document.getElementById('notification');
-        container.className = `notification ${type} show`;
-
-        let html = `<div class="notification-message">${message}</div>`;
-
-        if (showUndo) {
-            html += `<button class="undo-btn" onclick="App.undoLastDrink()">Undo</button>`;
-        }
-
-        container.innerHTML = html;
-    },
-
-    /**
-     * Hide the notification.
-     */
-    hideNotification() {
-        const container = document.getElementById('notification');
-        container.classList.remove('show');
-    },
-
-    /**
      * Render the tab view for the selected guest.
      */
     renderTabView() {
@@ -307,7 +351,7 @@ const App = {
         const guestSelect = document.getElementById('tab-guest-select');
 
         // Populate guest dropdown
-        guestSelect.innerHTML = '<option value="">-- Select your name --</option>';
+        guestSelect.innerHTML = '<option value="">-- Kies je naam --</option>';
         GUEST_NAMES.forEach(name => {
             const option = document.createElement('option');
             option.value = name;
@@ -322,7 +366,7 @@ const App = {
         if (this.selectedGuest) {
             this.showGuestTab(this.selectedGuest);
         } else {
-            container.innerHTML = '<p class="placeholder-text">Select your name above to view your tab.</p>';
+            container.innerHTML = '<p class="placeholder-text">Selecteer je naam hierboven om je rekening te zien.</p>';
         }
     },
 
@@ -336,17 +380,18 @@ const App = {
         if (tab.drinks.length === 0) {
             container.innerHTML = `
                 <div class="empty-tab">
-                    <p>No drinks on your tab yet.</p>
-                    <p>Go to "Add Drinks" to start ordering!</p>
+                    <div class="empty-tab-icon">&#127866;</div>
+                    <p>Nog geen bestellingen.</p>
+                    <p class="empty-tab-hint">Ga naar "Bestellen" om iets te pakken!</p>
                 </div>
             `;
             return;
         }
 
         let html = `
-            <div class="tab-header">
+            <div class="tab-header-info">
                 <h3>${guestName}</h3>
-                ${tab.paid ? '<span class="paid-badge large">PAID</span>' : ''}
+                ${tab.paid ? '<span class="paid-badge large">BETAALD</span>' : ''}
             </div>
             <div class="tab-drinks-list">
         `;
@@ -364,7 +409,8 @@ const App = {
         Object.values(drinkCounts).forEach(item => {
             html += `
                 <div class="tab-drink-item">
-                    <span class="drink-name">${item.count}x ${item.name}</span>
+                    <span class="drink-count">${item.count}x</span>
+                    <span class="drink-name">${item.name}</span>
                     <span class="drink-price">${this.formatPrice(item.price * item.count)}</span>
                 </div>
             `;
@@ -373,7 +419,7 @@ const App = {
         html += `
             </div>
             <div class="tab-total">
-                <span>Total:</span>
+                <span>Totaal</span>
                 <span class="total-amount">${this.formatPrice(tab.total)}</span>
             </div>
         `;
@@ -403,11 +449,12 @@ const App = {
             }
         });
 
-        // Click anywhere to clear undo (except on undo button itself)
-        document.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('undo-btn') && this.lastAddedDrink) {
-                // Give a bit of grace period - don't immediately clear
-                // The timeout will handle it
+        // Close success overlay when clicking outside
+        document.getElementById('success-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'success-overlay') {
+                this.hideSuccessOverlay();
+                this.lastAddedDrink = null;
+                this.clearUndoTimeout();
             }
         });
     }

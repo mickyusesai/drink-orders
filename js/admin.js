@@ -1,7 +1,7 @@
 /**
- * CAMPSITE HONESTY BAR - ADMIN MODULE
+ * CAMPING DU LAC - BEHEERMODULE
  *
- * Handles the organizer/admin view with overview, payments, and exports.
+ * Functies voor het beheerders/organisator overzicht.
  */
 
 const Admin = {
@@ -21,21 +21,21 @@ const Admin = {
         const container = document.getElementById('admin-summary');
 
         container.innerHTML = `
-            <div class="summary-card">
+            <div class="summary-card total">
                 <div class="summary-value">${App.formatPrice(summary.totalRevenue)}</div>
-                <div class="summary-label">Total Revenue</div>
+                <div class="summary-label">Totale Omzet</div>
             </div>
             <div class="summary-card paid">
                 <div class="summary-value">${App.formatPrice(summary.totalPaid)}</div>
-                <div class="summary-label">Paid (${summary.paidCount})</div>
+                <div class="summary-label">Betaald (${summary.paidCount})</div>
             </div>
             <div class="summary-card unpaid">
                 <div class="summary-value">${App.formatPrice(summary.totalUnpaid)}</div>
-                <div class="summary-label">Unpaid (${summary.unpaidCount})</div>
+                <div class="summary-label">Open (${summary.unpaidCount})</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card guests">
                 <div class="summary-value">${summary.guestCount}</div>
-                <div class="summary-label">Guests with Tabs</div>
+                <div class="summary-label">Gasten met Tab</div>
             </div>
         `;
     },
@@ -51,16 +51,14 @@ const Admin = {
         const sortedGuests = Object.keys(tabs)
             .filter(name => tabs[name].drinks.length > 0)
             .sort((a, b) => {
-                // Unpaid first
                 if (tabs[a].paid !== tabs[b].paid) {
                     return tabs[a].paid ? 1 : -1;
                 }
-                // Then by total descending
                 return tabs[b].total - tabs[a].total;
             });
 
         if (sortedGuests.length === 0) {
-            container.innerHTML = '<p class="placeholder-text">No guests have ordered drinks yet.</p>';
+            container.innerHTML = '<p class="placeholder-text">Nog geen gasten met bestellingen.</p>';
             return;
         }
 
@@ -68,11 +66,11 @@ const Admin = {
             <table class="admin-table">
                 <thead>
                     <tr>
-                        <th>Guest</th>
-                        <th>Drinks</th>
-                        <th>Total</th>
+                        <th>Gast</th>
+                        <th>Aantal</th>
+                        <th>Totaal</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th>Acties</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -81,7 +79,7 @@ const Admin = {
         sortedGuests.forEach(name => {
             const tab = tabs[name];
             const statusClass = tab.paid ? 'status-paid' : 'status-unpaid';
-            const statusText = tab.paid ? 'Paid' : 'Unpaid';
+            const statusText = tab.paid ? 'Betaald' : 'Open';
 
             html += `
                 <tr class="${tab.paid ? 'row-paid' : ''}">
@@ -94,8 +92,8 @@ const Admin = {
                             Details
                         </button>
                         ${tab.paid
-                            ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(name)}', false)">Mark Unpaid</button>`
-                            : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(name)}', true)">Mark Paid</button>`
+                            ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(name)}', false)">Open</button>`
+                            : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(name)}', true)">Betaald</button>`
                         }
                     </td>
                 </tr>
@@ -135,18 +133,17 @@ const Admin = {
         let html = `
             <div class="modal-header">
                 <h2>${guestName}</h2>
-                ${tab.paid ? '<span class="paid-badge large">PAID</span>' : ''}
+                ${tab.paid ? '<span class="paid-badge large">BETAALD</span>' : ''}
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
         `;
 
         if (tab.drinks.length === 0) {
-            html += '<p>No drinks on this tab.</p>';
+            html += '<p>Geen bestellingen voor deze gast.</p>';
         } else {
-            html += '<table class="details-table"><thead><tr><th>Drink</th><th>Price</th><th>Time</th></tr></thead><tbody>';
+            html += '<table class="details-table"><thead><tr><th>Item</th><th>Prijs</th><th>Tijd</th></tr></thead><tbody>';
 
-            // Sort drinks by timestamp (newest first)
             const sortedDrinks = [...tab.drinks].sort((a, b) => b.timestamp - a.timestamp);
 
             sortedDrinks.forEach(drink => {
@@ -170,10 +167,10 @@ const Admin = {
         html += `
             </div>
             <div class="modal-footer">
-                <div class="modal-total">Total: <strong>${App.formatPrice(tab.total)}</strong></div>
+                <div class="modal-total">Totaal: <strong>${App.formatPrice(tab.total)}</strong></div>
                 ${tab.paid
-                    ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', false); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Mark as Unpaid</button>`
-                    : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', true); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Mark as Paid</button>`
+                    ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', false); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Markeer als Open</button>`
+                    : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', true); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Markeer als Betaald</button>`
                 }
             </div>
         `;
@@ -194,7 +191,7 @@ const Admin = {
      */
     exportCSV() {
         const csv = Storage.exportCSV();
-        this.downloadFile(csv, 'honesty-bar-summary.csv', 'text/csv');
+        this.downloadFile(csv, 'honesty-bar-overzicht.csv', 'text/csv');
     },
 
     /**
@@ -202,7 +199,7 @@ const Admin = {
      */
     exportDetailedCSV() {
         const csv = Storage.exportDetailedCSV();
-        this.downloadFile(csv, 'honesty-bar-detailed.csv', 'text/csv');
+        this.downloadFile(csv, 'honesty-bar-detail.csv', 'text/csv');
     },
 
     /**
@@ -212,7 +209,6 @@ const Admin = {
         const tabs = Storage.getAllTabs();
         const summary = Storage.getSummary();
 
-        // Sort guests
         const sortedGuests = Object.keys(tabs)
             .filter(name => tabs[name].drinks.length > 0)
             .sort((a, b) => {
@@ -224,49 +220,50 @@ const Admin = {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Honesty Bar - Weekly Summary</title>
+                <title>${APP_CONFIG.appTitle} - Overzicht</title>
                 <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-                    h1 { text-align: center; margin-bottom: 10px; }
-                    .date { text-align: center; color: #666; margin-bottom: 30px; }
-                    .summary { display: flex; justify-content: space-around; margin-bottom: 30px; padding: 15px; background: #f5f5f5; border-radius: 8px; }
+                    body { font-family: 'Nunito', Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+                    h1 { text-align: center; margin-bottom: 5px; color: #1a4d1a; }
+                    .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+                    .summary { display: flex; justify-content: space-around; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 12px; }
                     .summary-item { text-align: center; }
-                    .summary-value { font-size: 24px; font-weight: bold; }
-                    .summary-label { font-size: 12px; color: #666; }
+                    .summary-value { font-size: 28px; font-weight: 700; color: #1a4d1a; }
+                    .summary-label { font-size: 12px; color: #666; text-transform: uppercase; }
                     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                    th { background: #f0f0f0; }
-                    .paid { color: green; }
-                    .unpaid { color: #c00; font-weight: bold; }
+                    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                    th { background: #1a4d1a; color: white; }
+                    .paid { color: #2e7d32; font-weight: 600; }
+                    .unpaid { color: #c62828; font-weight: 700; }
                     .total { text-align: right; font-weight: bold; }
                     @media print { .no-print { display: none; } }
                 </style>
             </head>
             <body>
-                <h1>${APP_CONFIG.appTitle} - Weekly Summary</h1>
-                <p class="date">Generated: ${new Date().toLocaleString(APP_CONFIG.locale)}</p>
+                <h1>${APP_CONFIG.appTitle}</h1>
+                <p class="subtitle">${APP_CONFIG.appSubtitle} - Weekoverzicht</p>
+                <p style="text-align: center; color: #888; font-size: 14px;">Gegenereerd: ${new Date().toLocaleString(APP_CONFIG.locale)}</p>
 
                 <div class="summary">
                     <div class="summary-item">
                         <div class="summary-value">${App.formatPrice(summary.totalRevenue)}</div>
-                        <div class="summary-label">Total Revenue</div>
+                        <div class="summary-label">Totale Omzet</div>
                     </div>
                     <div class="summary-item">
                         <div class="summary-value paid">${App.formatPrice(summary.totalPaid)}</div>
-                        <div class="summary-label">Paid</div>
+                        <div class="summary-label">Betaald</div>
                     </div>
                     <div class="summary-item">
                         <div class="summary-value unpaid">${App.formatPrice(summary.totalUnpaid)}</div>
-                        <div class="summary-label">Unpaid</div>
+                        <div class="summary-label">Open</div>
                     </div>
                 </div>
 
                 <table>
                     <thead>
                         <tr>
-                            <th>Guest</th>
-                            <th>Drinks</th>
-                            <th>Total</th>
+                            <th>Gast</th>
+                            <th>Aantal</th>
+                            <th>Totaal</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -280,7 +277,7 @@ const Admin = {
                     <td>${name}</td>
                     <td>${tab.drinks.length}</td>
                     <td class="total">${App.formatPrice(tab.total)}</td>
-                    <td class="${tab.paid ? 'paid' : 'unpaid'}">${tab.paid ? 'Paid' : 'UNPAID'}</td>
+                    <td class="${tab.paid ? 'paid' : 'unpaid'}">${tab.paid ? 'Betaald' : 'OPEN'}</td>
                 </tr>
             `;
         });
@@ -289,12 +286,14 @@ const Admin = {
                     </tbody>
                 </table>
 
-                <button class="no-print" onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
-                    Print This Page
-                </button>
-                <button class="no-print" onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; margin-left: 10px;">
-                    Close
-                </button>
+                <div class="no-print" style="text-align: center; margin-top: 30px;">
+                    <button onclick="window.print()" style="padding: 12px 24px; font-size: 16px; cursor: pointer; background: #1a4d1a; color: white; border: none; border-radius: 8px; margin-right: 10px;">
+                        Printen
+                    </button>
+                    <button onclick="window.close()" style="padding: 12px 24px; font-size: 16px; cursor: pointer; background: #666; color: white; border: none; border-radius: 8px;">
+                        Sluiten
+                    </button>
+                </div>
             </body>
             </html>
         `;
@@ -310,10 +309,9 @@ const Admin = {
     copyCSVToClipboard() {
         const csv = Storage.exportCSV();
         navigator.clipboard.writeText(csv).then(() => {
-            alert('CSV copied to clipboard!');
+            alert('CSV gekopieerd naar klembord!');
         }).catch(err => {
-            console.error('Failed to copy:', err);
-            // Fallback: show in textarea
+            console.error('Kopiëren mislukt:', err);
             this.showCSVTextarea(csv);
         });
     },
@@ -327,18 +325,17 @@ const Admin = {
 
         content.innerHTML = `
             <div class="modal-header">
-                <h2>Export CSV</h2>
+                <h2>Exporteer CSV</h2>
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Select all and copy (Ctrl/Cmd+C):</p>
+                <p>Selecteer alles en kopieer (Ctrl/Cmd+C):</p>
                 <textarea class="csv-textarea" readonly onclick="this.select()">${csv}</textarea>
             </div>
         `;
 
         modal.classList.add('show');
 
-        // Auto-select the text
         setTimeout(() => {
             document.querySelector('.csv-textarea').select();
         }, 100);
@@ -372,15 +369,15 @@ const Admin = {
      */
     startNewWeek() {
         const confirmed = confirm(
-            'This will PERMANENTLY DELETE all guest tabs and payment data.\n\n' +
-            'Make sure you have exported or printed the data first!\n\n' +
-            'Are you sure you want to start a new week?'
+            'Dit zal ALLE gasten tabs en betalingsgegevens PERMANENT VERWIJDEREN.\n\n' +
+            'Zorg ervoor dat je de gegevens eerst hebt geëxporteerd of geprint!\n\n' +
+            'Weet je zeker dat je een nieuwe week wilt starten?'
         );
 
         if (confirmed) {
             const doubleConfirm = confirm(
-                'FINAL WARNING: All data will be lost.\n\n' +
-                'Click OK to confirm and start fresh.'
+                'LAATSTE WAARSCHUWING: Alle gegevens gaan verloren.\n\n' +
+                'Klik OK om te bevestigen en opnieuw te beginnen.'
             );
 
             if (doubleConfirm) {
@@ -388,7 +385,7 @@ const Admin = {
                 Storage.init();
                 this.renderAdminView();
                 App.renderGuestButtons();
-                alert('New week started! All tabs have been cleared.');
+                alert('Nieuwe week gestart! Alle tabs zijn gewist.');
             }
         }
     }

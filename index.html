@@ -1,40 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Campsite Honesty Bar</title>
+    <title>Camping du Lac - Honesty Bar</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1 id="app-title">Campsite Honesty Bar</h1>
-            <nav class="main-nav">
-                <button class="nav-btn active" data-view="order">Add Drinks</button>
-                <button class="nav-btn" data-view="tab">View Tab</button>
-                <button class="nav-btn admin-nav" data-view="admin">Organiser</button>
-            </nav>
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 100 100" class="lake-icon">
+                            <ellipse cx="50" cy="70" rx="45" ry="20" fill="rgba(255,255,255,0.3)"/>
+                            <path d="M20 50 L35 25 L50 50 L65 20 L80 50" stroke="rgba(255,255,255,0.8)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="75" cy="15" r="8" fill="rgba(255,255,255,0.6)"/>
+                        </svg>
+                    </div>
+                    <div class="title-section">
+                        <h1 id="app-title">Camping du Lac</h1>
+                        <span id="app-subtitle" class="subtitle">Honesty Bar</span>
+                    </div>
+                </div>
+                <nav class="main-nav">
+                    <button class="nav-btn active" data-view="guests">Bestellen</button>
+                    <button class="nav-btn" data-view="tab">Rekening</button>
+                    <button class="nav-btn admin-nav" data-view="admin">Beheer</button>
+                </nav>
+            </div>
         </header>
 
-        <!-- Notification area -->
-        <div id="notification" class="notification"></div>
+        <!-- Success Animation Overlay -->
+        <div id="success-overlay" class="success-overlay">
+            <div class="success-content">
+                <div class="success-icon">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
+                        <path d="M30 50 L45 65 L70 35" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="success-drink-name"></div>
+                <div class="success-message"></div>
+                <div class="success-total"></div>
+                <button class="undo-btn">Ongedaan maken</button>
+            </div>
+        </div>
 
-        <!-- Order View (Main) -->
-        <main id="order-view" class="view active">
-            <section class="order-section guests-section">
-                <h2>1. Select Your Name</h2>
-                <div id="selected-guest-display" class="selected-guest-display">
-                    <span class="placeholder">Tap your name below</span>
+        <!-- Guest Selection View (Step 1) -->
+        <main id="guests-view" class="view active">
+            <section class="guest-section">
+                <div class="section-header">
+                    <h2>Wie ben je?</h2>
+                    <p class="section-hint">Tik op je naam om te bestellen</p>
                 </div>
                 <div id="guest-buttons" class="guest-buttons-grid"></div>
             </section>
+        </main>
 
-            <section class="order-section drinks-section">
-                <h2>2. Select Your Drink</h2>
+        <!-- Drink Selection View (Step 2) -->
+        <main id="drinks-view" class="view">
+            <section class="drinks-section">
+                <div class="drinks-header">
+                    <button class="back-btn" onclick="App.goBackToGuests()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Terug
+                    </button>
+                    <div class="selected-guest-info">
+                        <span class="ordering-for">Bestellen voor:</span>
+                        <span id="selected-guest-name" class="guest-name-display"></span>
+                        <span id="selected-guest-total" class="guest-total-display"></span>
+                    </div>
+                </div>
+                <div class="section-header">
+                    <h2>Wat neem je?</h2>
+                    <p class="section-hint">Tik op je drankje of snack</p>
+                </div>
                 <div id="drink-buttons" class="drink-categories"></div>
             </section>
         </main>
@@ -42,15 +91,18 @@
         <!-- Tab View -->
         <main id="tab-view" class="view">
             <section class="tab-section">
-                <h2>View Your Tab</h2>
+                <div class="section-header">
+                    <h2>Je rekening</h2>
+                    <p class="section-hint">Bekijk wat je hebt besteld</p>
+                </div>
                 <div class="tab-guest-selector">
-                    <label for="tab-guest-select">Select your name:</label>
+                    <label for="tab-guest-select">Selecteer je naam:</label>
                     <select id="tab-guest-select" class="guest-select">
-                        <option value="">-- Select your name --</option>
+                        <option value="">-- Kies je naam --</option>
                     </select>
                 </div>
                 <div id="tab-content" class="tab-content">
-                    <p class="placeholder-text">Select your name above to view your tab.</p>
+                    <p class="placeholder-text">Selecteer je naam hierboven om je rekening te zien.</p>
                 </div>
             </section>
         </main>
@@ -58,32 +110,34 @@
         <!-- Admin View -->
         <main id="admin-view" class="view">
             <section class="admin-section">
-                <h2>Organiser Overview</h2>
+                <div class="section-header">
+                    <h2>Beheer Overzicht</h2>
+                </div>
 
                 <div id="admin-summary" class="admin-summary"></div>
 
                 <div class="admin-actions">
                     <button class="export-btn" onclick="Admin.showPrintView()">
-                        <span class="btn-icon">🖨️</span> Print Overview
+                        <span class="btn-icon">&#128424;</span> Printen
                     </button>
                     <button class="export-btn" onclick="Admin.copyCSVToClipboard()">
-                        <span class="btn-icon">📋</span> Copy CSV
+                        <span class="btn-icon">&#128203;</span> Kopieer CSV
                     </button>
                     <button class="export-btn" onclick="Admin.exportCSV()">
-                        <span class="btn-icon">📥</span> Download CSV
+                        <span class="btn-icon">&#128229;</span> Download CSV
                     </button>
                     <button class="export-btn" onclick="Admin.exportDetailedCSV()">
-                        <span class="btn-icon">📊</span> Detailed CSV
+                        <span class="btn-icon">&#128202;</span> Detail CSV
                     </button>
                     <button class="export-btn" onclick="Admin.backupData()">
-                        <span class="btn-icon">💾</span> Backup Data
+                        <span class="btn-icon">&#128190;</span> Backup
                     </button>
                     <button class="export-btn danger" onclick="Admin.startNewWeek()">
-                        <span class="btn-icon">🔄</span> New Week
+                        <span class="btn-icon">&#128260;</span> Nieuwe Week
                     </button>
                 </div>
 
-                <h3>Guest Tabs</h3>
+                <h3>Gasten Overzicht</h3>
                 <div id="admin-guests-table" class="admin-table-container"></div>
             </section>
         </main>
