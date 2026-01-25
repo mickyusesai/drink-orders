@@ -83,7 +83,7 @@ const DRINK_CATEGORIES = [
     {
         name: "Snacks & Kleine drankjes",
         price: 1.50,
-        color: "#2D5A27", // Forest green
+        color: "#7ed957", // Lime green (from camping website)
         items: [
             "Chips",
             "Snacks",
@@ -95,7 +95,7 @@ const DRINK_CATEGORIES = [
     {
         name: "Frisdrank & Water",
         price: 2.00,
-        color: "#1E6B8C", // Lake blue
+        color: "#00a0d2", // Cyan blue (from camping website)
         items: [
             "Fris",
             "Groot water"
@@ -104,7 +104,7 @@ const DRINK_CATEGORIES = [
     {
         name: "Bier & Wijn per glas",
         price: 2.50,
-        color: "#8B6914", // Amber/beer color
+        color: "#f5a623", // Warm amber
         items: [
             "1664 Bier",
             "1664 Bier 0.0",
@@ -114,7 +114,7 @@ const DRINK_CATEGORIES = [
     {
         name: "Specials & Mixers",
         price: 4.00,
-        color: "#7B3B3B", // Deep red
+        color: "#e53935", // Red
         items: [
             "Speciaal bier",
             "Redbull",
@@ -126,7 +126,7 @@ const DRINK_CATEGORIES = [
     {
         name: "Flessen",
         price: 10.00,
-        color: "#5C3D2E", // Wine brown
+        color: "#7b2d5b", // Wine purple
         items: [
             "Fles wijn"
         ]
