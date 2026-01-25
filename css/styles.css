@@ -407,13 +407,9 @@ body {
     line-height: 1.2;
 }
 
-.guest-total-badge {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--color-primary);
-    background: var(--bg-light);
-    padding: 1px 6px;
-    border-radius: var(--radius-full);
+.guest-icons-badge {
+    font-size: 12px;
+    line-height: 1;
 }
 
 .guest-btn.paid {

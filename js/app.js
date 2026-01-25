@@ -147,6 +147,34 @@ const App = {
     },
 
     /**
+     * Get icon for a drink/item name.
+     */
+    getItemIcon(itemName) {
+        const name = itemName.toLowerCase();
+        if (name.includes('wijn') || name.includes('wine')) return '🍷';
+        if (name.includes('bier') || name.includes('ipa') || name.includes('desperados')) return '🍺';
+        if (name.includes('water')) return '💧';
+        if (name.includes('chips') || name.includes('snack')) return '🍿';
+        if (name.includes('thee') || name.includes('koffie') || name.includes('coffee')) return '☕';
+        if (name.includes('fris') || name.includes('redbull')) return '🥤';
+        if (name.includes('cocktail') || name.includes('mocktail') || name.includes('mixer')) return '🍹';
+        if (name.includes('panini') || name.includes('smoothie') || name.includes('ijsje')) return '🍽️';
+        if (name.includes('watersport') || name.includes('kayak') || name.includes('pedalo') || name.includes('sup')) return '🚣';
+        return '🛒'; // Default
+    },
+
+    /**
+     * Get unique icons for a guest's orders.
+     */
+    getGuestIcons(drinks) {
+        const icons = new Set();
+        drinks.forEach(drink => {
+            icons.add(this.getItemIcon(drink.name));
+        });
+        return Array.from(icons).slice(0, 5).join(''); // Max 5 icons
+    },
+
+    /**
      * Render guest name buttons.
      */
     renderGuestButtons() {
@@ -170,10 +198,10 @@ const App = {
                 btn.classList.add('paid');
             }
 
-            if (tabs[name] && tabs[name].total > 0) {
+            if (tabs[name] && tabs[name].drinks && tabs[name].drinks.length > 0) {
                 const badge = document.createElement('span');
-                badge.className = 'guest-total-badge';
-                badge.textContent = this.formatPrice(tabs[name].total);
+                badge.className = 'guest-icons-badge';
+                badge.textContent = this.getGuestIcons(tabs[name].drinks);
                 btn.appendChild(badge);
             }
 
