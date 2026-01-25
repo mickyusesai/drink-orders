@@ -1358,6 +1358,180 @@ body {
 }
 
 /* ==========================================================================
+   Category Toggles & Receptie
+   ========================================================================== */
+
+.admin-toggles-section,
+.admin-receptie-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-toggles-section h3,
+.admin-receptie-section h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-xs);
+}
+
+.toggle-hint {
+    font-size: 12px;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-sm);
+}
+
+.category-toggles {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: var(--bg-light);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-full);
+}
+
+.toggle-label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.toggle-btn {
+    background: #ccc;
+    color: white;
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-family: var(--font-main);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 50px;
+}
+
+.toggle-btn.active {
+    background: var(--color-accent-dark);
+}
+
+.toggle-btn:hover {
+    transform: scale(1.05);
+}
+
+.receptie-btn {
+    background: var(--color-primary) !important;
+    color: white !important;
+    border-color: var(--color-primary) !important;
+}
+
+.receptie-btn:hover {
+    background: var(--color-primary-dark) !important;
+}
+
+/* Receptie Modal */
+.receptie-modal {
+    max-width: 400px;
+}
+
+.receptie-guest-select {
+    margin-bottom: var(--spacing-md);
+}
+
+.receptie-guest-select label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-primary-dark);
+}
+
+.receptie-items h4 {
+    font-size: 14px;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--spacing-sm);
+}
+
+.receptie-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm);
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.receptie-item-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.receptie-item-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.receptie-price-input {
+    width: 80px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 600;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    text-align: right;
+}
+
+.receptie-custom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+}
+
+.receptie-custom-name {
+    width: 100%;
+}
+
+.receptie-custom-name label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-xs);
+}
+
+.receptie-name-input {
+    width: 100%;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: var(--font-main);
+    font-size: 14px;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+}
+
+.receptie-custom .receptie-item-controls {
+    justify-content: flex-end;
+}
+
+.receptie-feedback {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    text-align: center;
+    min-height: 30px;
+}
+
+.success-text {
+    color: var(--color-paid);
+    font-weight: 600;
+}
+
+/* ==========================================================================
    Responsive - Tablet optimized
    ========================================================================== */
 

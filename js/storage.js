@@ -367,6 +367,25 @@ const Storage = {
      */
     resetGuestList() {
         localStorage.removeItem(this._key('customGuests'));
+    },
+
+    // ==========================================================================
+    // CATEGORY TOGGLES (Cocktails, Foodtruck, etc.)
+    // ==========================================================================
+
+    /**
+     * Check if a toggleable category is enabled.
+     */
+    isCategoryEnabled(toggleKey) {
+        const enabled = localStorage.getItem(this._key('category_' + toggleKey));
+        return enabled === 'true';
+    },
+
+    /**
+     * Enable or disable a toggleable category.
+     */
+    setCategoryEnabled(toggleKey, enabled) {
+        localStorage.setItem(this._key('category_' + toggleKey), enabled ? 'true' : 'false');
     }
 };
 

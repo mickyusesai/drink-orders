@@ -10,6 +10,7 @@ const Admin = {
      */
     renderAdminView() {
         this.renderSummary();
+        this.renderCategoryToggles();
         this.renderGuestTable();
     },
 
@@ -178,7 +179,10 @@ const Admin = {
 
         DRINK_CATEGORIES.forEach(category => {
             category.items.forEach(item => {
-                html += `<option value="${item}|${category.price}">${item} (${App.formatPrice(category.price)})</option>`;
+                // Handle both string items (fixed price) and object items (individual price)
+                const itemName = typeof item === 'string' ? item : item.name;
+                const itemPrice = typeof item === 'string' ? category.price : item.price;
+                html += `<option value="${itemName}|${itemPrice}">${itemName} (${App.formatPrice(itemPrice)})</option>`;
             });
         });
 
@@ -666,6 +670,185 @@ const Admin = {
             this.showGuestListManager();
             alert('Gastenlijst gereset naar standaard.');
         }
+    },
+
+    // ==========================================================================
+    // CATEGORY TOGGLES (Cocktails, Foodtruck)
+    // ==========================================================================
+
+    /**
+     * Toggle a category on/off.
+     */
+    toggleCategory(toggleKey) {
+        const currentState = Storage.isCategoryEnabled(toggleKey);
+        Storage.setCategoryEnabled(toggleKey, !currentState);
+        App.renderDrinkButtons();
+        this.renderCategoryToggles();
+    },
+
+    /**
+     * Render category toggle switches.
+     */
+    renderCategoryToggles() {
+        const container = document.getElementById('category-toggles');
+        if (!container) return;
+
+        let html = '';
+
+        DRINK_CATEGORIES.forEach(category => {
+            if (category.toggleKey) {
+                const isEnabled = Storage.isCategoryEnabled(category.toggleKey);
+                html += `
+                    <div class="toggle-item">
+                        <span class="toggle-label">${category.name}</span>
+                        <button class="toggle-btn ${isEnabled ? 'active' : ''}" onclick="Admin.toggleCategory('${category.toggleKey}')">
+                            ${isEnabled ? 'AAN' : 'UIT'}
+                        </button>
+                    </div>
+                `;
+            }
+        });
+
+        container.innerHTML = html;
+    },
+
+    // ==========================================================================
+    // RECEPTIE - Add items for guests
+    // ==========================================================================
+
+    /**
+     * Show receptie modal to add items for a guest.
+     */
+    showReceptieModal() {
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+        const guestList = Storage.getGuestList();
+
+        let html = `
+            <div class="modal-header">
+                <h2>Receptie Toevoegen</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body receptie-modal">
+                <div class="receptie-guest-select">
+                    <label>Selecteer gast:</label>
+                    <select id="receptie-guest" class="admin-drink-select">
+                        <option value="">-- Kies gast --</option>
+        `;
+
+        guestList.forEach(name => {
+            html += `<option value="${this.escapeHtml(name)}">${name}</option>`;
+        });
+
+        html += `
+                    </select>
+                </div>
+
+                <div class="receptie-items">
+                    <h4>Kies item:</h4>
+
+                    <div class="receptie-item-row">
+                        <span class="receptie-item-name">IJsje</span>
+                        <div class="receptie-item-controls">
+                            <input type="number" id="receptie-ijsje-price" class="receptie-price-input" value="2.00" step="0.50" min="0">
+                            <button class="add-drink-btn" onclick="Admin.addReceptieItem('IJsje', 'receptie-ijsje-price')">+</button>
+                        </div>
+                    </div>
+
+                    <div class="receptie-item-row">
+                        <span class="receptie-item-name">Watersport verhuur</span>
+                        <div class="receptie-item-controls">
+                            <input type="number" id="receptie-watersport-price" class="receptie-price-input" value="10.00" step="1.00" min="0">
+                            <button class="add-drink-btn" onclick="Admin.addReceptieItem('Watersport verhuur', 'receptie-watersport-price')">+</button>
+                        </div>
+                    </div>
+
+                    <div class="receptie-item-row receptie-custom">
+                        <div class="receptie-custom-name">
+                            <label>Anders, namelijk:</label>
+                            <input type="text" id="receptie-custom-name" class="receptie-name-input" placeholder="Omschrijving...">
+                        </div>
+                        <div class="receptie-item-controls">
+                            <input type="number" id="receptie-custom-price" class="receptie-price-input" value="5.00" step="0.50" min="0">
+                            <button class="add-drink-btn" onclick="Admin.addReceptieCustomItem()">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="receptie-feedback" class="receptie-feedback"></div>
+            </div>
+        `;
+
+        content.innerHTML = html;
+        modal.classList.add('show');
+    },
+
+    /**
+     * Add a receptie item to a guest.
+     */
+    addReceptieItem(itemName, priceInputId) {
+        const guestSelect = document.getElementById('receptie-guest');
+        const priceInput = document.getElementById(priceInputId);
+        const feedback = document.getElementById('receptie-feedback');
+
+        if (!guestSelect.value) {
+            feedback.innerHTML = '<span class="error-text">Selecteer eerst een gast!</span>';
+            return;
+        }
+
+        const price = parseFloat(priceInput.value);
+        if (isNaN(price) || price < 0) {
+            feedback.innerHTML = '<span class="error-text">Ongeldige prijs!</span>';
+            return;
+        }
+
+        Storage.addDrink(guestSelect.value, itemName, price);
+        this.renderAdminView();
+        App.renderGuestButtons();
+
+        feedback.innerHTML = `<span class="success-text">✓ ${itemName} (${App.formatPrice(price)}) toegevoegd voor ${guestSelect.value}</span>`;
+
+        setTimeout(() => {
+            feedback.innerHTML = '';
+        }, 3000);
+    },
+
+    /**
+     * Add a custom receptie item.
+     */
+    addReceptieCustomItem() {
+        const guestSelect = document.getElementById('receptie-guest');
+        const nameInput = document.getElementById('receptie-custom-name');
+        const priceInput = document.getElementById('receptie-custom-price');
+        const feedback = document.getElementById('receptie-feedback');
+
+        if (!guestSelect.value) {
+            feedback.innerHTML = '<span class="error-text">Selecteer eerst een gast!</span>';
+            return;
+        }
+
+        const itemName = nameInput.value.trim();
+        if (!itemName) {
+            feedback.innerHTML = '<span class="error-text">Voer een omschrijving in!</span>';
+            return;
+        }
+
+        const price = parseFloat(priceInput.value);
+        if (isNaN(price) || price < 0) {
+            feedback.innerHTML = '<span class="error-text">Ongeldige prijs!</span>';
+            return;
+        }
+
+        Storage.addDrink(guestSelect.value, itemName, price);
+        this.renderAdminView();
+        App.renderGuestButtons();
+
+        feedback.innerHTML = `<span class="success-text">✓ ${itemName} (${App.formatPrice(price)}) toegevoegd voor ${guestSelect.value}</span>`;
+        nameInput.value = '';
+
+        setTimeout(() => {
+            feedback.innerHTML = '';
+        }, 3000);
     }
 };
 

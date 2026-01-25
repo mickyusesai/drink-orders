@@ -127,6 +127,20 @@
                     <button class="export-btn danger" onclick="Admin.startNewWeek()">Nieuwe Week</button>
                 </div>
 
+                <!-- Category Toggles -->
+                <div class="admin-toggles-section">
+                    <h3>Categorieën Aan/Uit</h3>
+                    <p class="toggle-hint">Zet Cocktails of Foodtruck aan wanneer ze beschikbaar zijn</p>
+                    <div id="category-toggles" class="category-toggles"></div>
+                </div>
+
+                <!-- Receptie Section -->
+                <div class="admin-receptie-section">
+                    <h3>Receptie Toevoegen</h3>
+                    <p class="toggle-hint">Voeg items toe voor gasten (ijsjes, watersport verhuur, etc.)</p>
+                    <button class="export-btn receptie-btn" onclick="Admin.showReceptieModal()">Receptie Toevoegen</button>
+                </div>
+
                 <h3>Gasten Overzicht</h3>
                 <div id="admin-guests-table" class="admin-table-container"></div>
 

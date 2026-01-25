@@ -113,15 +113,23 @@ const App = {
         container.innerHTML = '';
 
         DRINK_CATEGORIES.forEach(category => {
+            // Check if category is toggleable and if it's currently hidden
+            if (category.toggleKey && !Storage.isCategoryEnabled(category.toggleKey)) {
+                return; // Skip hidden categories
+            }
+
             const categoryDiv = document.createElement('div');
             categoryDiv.className = 'drink-category';
+
+            // Check if category has a fixed price or items have individual prices
+            const hasFixedPrice = typeof category.price === 'number';
 
             const header = document.createElement('div');
             header.className = 'category-header';
             header.style.backgroundColor = category.color;
             header.innerHTML = `
                 <span class="category-name">${category.name}</span>
-                <span class="category-price">${this.formatPrice(category.price)}</span>
+                ${hasFixedPrice ? `<span class="category-price">${this.formatPrice(category.price)}</span>` : ''}
             `;
             categoryDiv.appendChild(header);
 
@@ -129,16 +137,20 @@ const App = {
             itemsDiv.className = 'category-items';
 
             category.items.forEach(item => {
+                // Handle both string items (fixed price) and object items (individual price)
+                const itemName = typeof item === 'string' ? item : item.name;
+                const itemPrice = typeof item === 'string' ? category.price : item.price;
+
                 const btn = document.createElement('button');
                 btn.className = 'drink-btn';
                 btn.innerHTML = `
-                    <span class="drink-btn-name">${item}</span>
-                    <span class="drink-btn-price">${this.formatPrice(category.price)}</span>
+                    <span class="drink-btn-name">${itemName}</span>
+                    <span class="drink-btn-price">${this.formatPrice(itemPrice)}</span>
                 `;
                 btn.style.setProperty('--category-color', category.color);
-                btn.dataset.drink = item;
-                btn.dataset.price = category.price;
-                btn.addEventListener('click', () => this.addDrink(item, category.price));
+                btn.dataset.drink = itemName;
+                btn.dataset.price = itemPrice;
+                btn.addEventListener('click', () => this.addDrink(itemName, itemPrice));
                 itemsDiv.appendChild(btn);
             });
 

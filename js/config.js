@@ -130,6 +130,27 @@ const DRINK_CATEGORIES = [
         items: [
             "Fles wijn"
         ]
+    },
+    // ==========================================================================
+    // SCHAKELBARE CATEGORIEËN (aan/uit te zetten in Beheer)
+    // ==========================================================================
+    {
+        name: "Cocktails",
+        color: "#9c27b0", // Purple
+        toggleKey: "cocktails", // Unieke sleutel voor aan/uit zetten
+        items: [
+            { name: "Cocktail", price: 7.50 },
+            { name: "Mocktail", price: 5.00 }
+        ]
+    },
+    {
+        name: "Foodtruck",
+        color: "#ff5722", // Deep orange
+        toggleKey: "foodtruck", // Unieke sleutel voor aan/uit zetten
+        items: [
+            { name: "Panini", price: 5.00 },
+            { name: "Smoothie", price: 3.50 }
+        ]
     }
 ];
 
