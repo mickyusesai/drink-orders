@@ -225,10 +225,22 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-.close-popup-btn {
+.close-popup-area {
     position: absolute;
     top: var(--spacing-sm);
     right: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.close-popup-text {
+    font-size: 10px;
+    color: var(--color-text-light);
+    white-space: nowrap;
+}
+
+.close-popup-btn {
     background: var(--bg-light);
     border: none;
     width: 32px;
@@ -241,6 +253,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .close-popup-btn:hover {

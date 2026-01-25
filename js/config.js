@@ -138,8 +138,8 @@ const DRINK_CATEGORIES = [
 // =============================================================================
 
 const APP_CONFIG = {
-    // Hoe lang de ongedaan-knop zichtbaar blijft (in milliseconden)
-    undoTimeoutMs: 8000,
+    // Hoe lang de popup zichtbaar blijft voordat deze automatisch sluit (in milliseconden)
+    popupTimeoutMs: 5000,
 
     // Valutasymbool
     currency: "€",

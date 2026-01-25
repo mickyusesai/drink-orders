@@ -33,6 +33,11 @@ const App = {
      * Show a specific view/screen.
      */
     showView(viewName) {
+        // Lock admin when leaving admin view - requires PIN every time
+        if (this.currentView === 'admin' && viewName !== 'admin') {
+            this.adminUnlocked = false;
+        }
+
         this.currentView = viewName;
 
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -204,7 +209,7 @@ const App = {
         this.clearUndoTimeout();
         this.undoTimeout = setTimeout(() => {
             this.closePopupAndReset();
-        }, APP_CONFIG.undoTimeoutMs);
+        }, APP_CONFIG.popupTimeoutMs);
     },
 
     /**
