@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Campsite Honesty Bar</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1 id="app-title">Campsite Honesty Bar</h1>
+            <nav class="main-nav">
+                <button class="nav-btn active" data-view="order">Add Drinks</button>
+                <button class="nav-btn" data-view="tab">View Tab</button>
+                <button class="nav-btn admin-nav" data-view="admin">Organiser</button>
+            </nav>
+        </header>
+
+        <!-- Notification area -->
+        <div id="notification" class="notification"></div>
+
+        <!-- Order View (Main) -->
+        <main id="order-view" class="view active">
+            <section class="order-section guests-section">
+                <h2>1. Select Your Name</h2>
+                <div id="selected-guest-display" class="selected-guest-display">
+                    <span class="placeholder">Tap your name below</span>
+                </div>
+                <div id="guest-buttons" class="guest-buttons-grid"></div>
+            </section>
+
+            <section class="order-section drinks-section">
+                <h2>2. Select Your Drink</h2>
+                <div id="drink-buttons" class="drink-categories"></div>
+            </section>
+        </main>
+
+        <!-- Tab View -->
+        <main id="tab-view" class="view">
+            <section class="tab-section">
+                <h2>View Your Tab</h2>
+                <div class="tab-guest-selector">
+                    <label for="tab-guest-select">Select your name:</label>
+                    <select id="tab-guest-select" class="guest-select">
+                        <option value="">-- Select your name --</option>
+                    </select>
+                </div>
+                <div id="tab-content" class="tab-content">
+                    <p class="placeholder-text">Select your name above to view your tab.</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Admin View -->
+        <main id="admin-view" class="view">
+            <section class="admin-section">
+                <h2>Organiser Overview</h2>
+
+                <div id="admin-summary" class="admin-summary"></div>
+
+                <div class="admin-actions">
+                    <button class="export-btn" onclick="Admin.showPrintView()">
+                        <span class="btn-icon">🖨️</span> Print Overview
+                    </button>
+                    <button class="export-btn" onclick="Admin.copyCSVToClipboard()">
+                        <span class="btn-icon">📋</span> Copy CSV
+                    </button>
+                    <button class="export-btn" onclick="Admin.exportCSV()">
+                        <span class="btn-icon">📥</span> Download CSV
+                    </button>
+                    <button class="export-btn" onclick="Admin.exportDetailedCSV()">
+                        <span class="btn-icon">📊</span> Detailed CSV
+                    </button>
+                    <button class="export-btn" onclick="Admin.backupData()">
+                        <span class="btn-icon">💾</span> Backup Data
+                    </button>
+                    <button class="export-btn danger" onclick="Admin.startNewWeek()">
+                        <span class="btn-icon">🔄</span> New Week
+                    </button>
+                </div>
+
+                <h3>Guest Tabs</h3>
+                <div id="admin-guests-table" class="admin-table-container"></div>
+            </section>
+        </main>
+
+        <!-- Details Modal -->
+        <div id="details-modal" class="modal">
+            <div class="modal-overlay" onclick="Admin.closeModal()"></div>
+            <div class="modal-content" id="details-content"></div>
+        </div>
+    </div>
+
+    <!-- Scripts (order matters) -->
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
