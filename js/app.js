@@ -228,6 +228,7 @@ const App = {
         if (!guestName) return [];
 
         const tab = Storage.getGuestTab(guestName);
+        console.log('Favorites check for', guestName, '- total drinks:', tab.drinks ? tab.drinks.length : 0, tab);
         if (!tab.drinks || tab.drinks.length < 5) return [];
 
         // Count occurrences of each item
@@ -247,6 +248,7 @@ const App = {
                 return { name, price: drink.price };
             });
 
+        console.log('Counts:', counts, 'Favorites:', favorites);
         return favorites;
     },
 
