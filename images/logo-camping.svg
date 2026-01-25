@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Camping du Lac circular logo -->
+  <circle cx="50" cy="50" r="48" fill="#00a0d2"/>
+  <circle cx="50" cy="50" r="44" fill="white"/>
+
+  <!-- Lake/water waves -->
+  <path d="M15 60 Q25 55 35 60 Q45 65 55 60 Q65 55 75 60 Q85 65 85 60"
+        fill="none" stroke="#00a0d2" stroke-width="3" stroke-linecap="round"/>
+  <path d="M15 68 Q25 63 35 68 Q45 73 55 68 Q65 63 75 68 Q85 73 85 68"
+        fill="none" stroke="#00a0d2" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Tree -->
+  <polygon points="50,18 35,50 65,50" fill="#7ed957"/>
+  <polygon points="50,28 38,52 62,52" fill="#5cb340"/>
+  <rect x="47" y="50" width="6" height="10" fill="#8B4513"/>
+
+  <!-- Text arc -->
+  <path id="textPath" d="M 15,75 Q 50,95 85,75" fill="none"/>
+  <text font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#00a0d2">
+    <textPath href="#textPath" startOffset="50%" text-anchor="middle">CAMPING DU LAC</textPath>
+  </text>
+</svg>

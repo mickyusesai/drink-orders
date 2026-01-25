@@ -111,18 +111,17 @@ body {
 
 .logo-camping, .logo-vibes {
     height: 50px;
-    width: auto;
-    border-radius: var(--radius-sm);
-    background: white;
-    padding: 4px;
-}
-
-.logo-camping {
+    width: 50px;
     border-radius: 50%;
 }
 
+.logo-camping {
+    background: white;
+    padding: 2px;
+}
+
 .logo-vibes {
-    border-radius: var(--radius-sm);
+    /* No padding needed - logo has its own red background */
 }
 
 .title-section {
@@ -283,6 +282,28 @@ body {
     background: var(--bg-light);
     border-radius: var(--radius-md);
     display: inline-block;
+}
+
+.success-actions {
+    margin-bottom: var(--spacing-md);
+}
+
+.another-drink-btn {
+    background: var(--color-accent-dark);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-full);
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.another-drink-btn:hover {
+    background: var(--color-accent);
+    transform: scale(1.02);
 }
 
 .success-footer {
@@ -971,6 +992,356 @@ body {
     padding: var(--spacing-sm);
     border: 2px solid var(--color-primary);
     border-radius: var(--radius-md);
+}
+
+/* ==========================================================================
+   PIN Modal
+   ========================================================================== */
+
+.pin-modal-content {
+    max-width: 320px;
+}
+
+.pin-body {
+    text-align: center;
+}
+
+.pin-label {
+    font-size: 14px;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-sm);
+}
+
+.pin-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    font-size: 32px;
+    font-family: var(--font-main);
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 8px;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.pin-input:focus {
+    outline: none;
+    border-color: var(--color-primary-dark);
+    box-shadow: 0 0 0 3px rgba(0, 160, 210, 0.2);
+}
+
+.pin-input.shake {
+    animation: shake 0.5s ease;
+    border-color: var(--color-error);
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+.pin-error {
+    color: var(--color-error);
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 20px;
+    margin-bottom: var(--spacing-sm);
+}
+
+.pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xs);
+    max-width: 240px;
+    margin: 0 auto;
+}
+
+.pin-key {
+    background: var(--bg-light);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    font-family: var(--font-main);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-dark);
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.pin-key:hover {
+    background: var(--color-primary-light);
+    color: white;
+}
+
+.pin-key:active {
+    transform: scale(0.95);
+}
+
+.pin-key.pin-clear {
+    background: var(--color-warning);
+    color: white;
+}
+
+.pin-key.pin-submit {
+    background: var(--color-accent-dark);
+    color: white;
+}
+
+/* ==========================================================================
+   Admin Drink Controls
+   ========================================================================== */
+
+.remove-drink-btn {
+    background: var(--color-error);
+    color: white;
+    border: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.remove-drink-btn:hover {
+    background: #c62828;
+    transform: scale(1.1);
+}
+
+.add-drink-section {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 2px solid var(--bg-light);
+}
+
+.add-drink-section h4 {
+    font-size: 14px;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--spacing-sm);
+}
+
+.add-drink-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.admin-drink-select {
+    flex: 1;
+    padding: var(--spacing-sm);
+    font-family: var(--font-main);
+    font-size: 14px;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background: white;
+    cursor: pointer;
+}
+
+.add-drink-btn {
+    background: var(--color-accent-dark);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.add-drink-btn:hover {
+    background: var(--color-accent);
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Restore Dialog
+   ========================================================================== */
+
+.restore-warning {
+    background: #fff3e0;
+    color: #e65100;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.restore-upload {
+    margin-bottom: var(--spacing-md);
+}
+
+.upload-label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-primary-dark);
+}
+
+.file-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 2px dashed var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-light);
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.restore-preview {
+    margin-top: var(--spacing-md);
+}
+
+.preview-info {
+    background: var(--bg-light);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.preview-info p {
+    margin: var(--spacing-xs) 0;
+    font-size: 14px;
+}
+
+.restore-btn {
+    width: 100%;
+    padding: var(--spacing-sm) !important;
+    font-size: 16px !important;
+}
+
+.error-text {
+    color: var(--color-error);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Guest Management
+   ========================================================================== */
+
+.guest-management-section {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 2px solid var(--bg-light);
+}
+
+.guest-management-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.add-guest-form {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex: 1;
+    min-width: 250px;
+}
+
+.new-guest-input {
+    flex: 1;
+    padding: var(--spacing-sm);
+    font-family: var(--font-main);
+    font-size: 14px;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-full);
+    min-width: 150px;
+}
+
+.new-guest-input:focus {
+    outline: none;
+    border-color: var(--color-primary-dark);
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+.csv-import-form label {
+    cursor: pointer;
+}
+
+/* Guest List Manager Modal */
+.guest-list-manager {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.manager-hint {
+    font-size: 13px;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-md);
+}
+
+.guest-list-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.guest-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: var(--bg-light);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    font-size: 13px;
+}
+
+.guest-list-item.has-orders {
+    background: #e8f5e9;
+}
+
+.guest-list-name {
+    font-weight: 600;
+}
+
+.guest-orders-badge {
+    font-size: 11px;
+    color: var(--color-paid);
+    font-weight: 700;
+}
+
+.remove-guest-btn {
+    background: none;
+    border: none;
+    color: var(--color-error);
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.remove-guest-btn:hover {
+    background: var(--color-error);
+    color: white;
+}
+
+.manager-actions {
+    padding-top: var(--spacing-md);
+    border-top: 1px solid #eee;
 }
 
 /* ==========================================================================

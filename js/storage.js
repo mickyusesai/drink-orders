@@ -28,14 +28,15 @@ const Storage = {
     // }
 
     /**
-     * Initialize storage with guest names from config.
+     * Initialize storage with guest names from config or custom list.
      * Does not overwrite existing data.
      */
     init() {
         let tabs = this.getAllTabs();
+        const guestList = this.getGuestList();
 
-        // Add any new guests from config that don't exist yet
-        GUEST_NAMES.forEach(name => {
+        // Add any new guests that don't exist yet
+        guestList.forEach(name => {
             if (!tabs[name]) {
                 tabs[name] = {
                     drinks: [],
@@ -265,6 +266,107 @@ const Storage = {
             console.error('Error restoring backup:', e);
             return false;
         }
+    },
+
+    // ==========================================================================
+    // GUEST MANAGEMENT
+    // ==========================================================================
+
+    /**
+     * Get the current guest list.
+     * Returns custom list if exists, otherwise default from config.
+     */
+    getGuestList() {
+        const custom = localStorage.getItem(this._key('customGuests'));
+        if (custom) {
+            try {
+                return JSON.parse(custom);
+            } catch (e) {
+                return GUEST_NAMES;
+            }
+        }
+        return GUEST_NAMES;
+    },
+
+    /**
+     * Save a custom guest list.
+     */
+    saveGuestList(guests) {
+        localStorage.setItem(this._key('customGuests'), JSON.stringify(guests));
+    },
+
+    /**
+     * Add a new guest to the list.
+     */
+    addGuest(name) {
+        const guests = this.getGuestList();
+        if (!guests.includes(name)) {
+            guests.push(name);
+            this.saveGuestList(guests);
+            // Also initialize their tab
+            const tabs = this.getAllTabs();
+            if (!tabs[name]) {
+                tabs[name] = { drinks: [], total: 0, paid: false };
+                this._saveTabs(tabs);
+            }
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Remove a guest from the list.
+     * Only removes if they have no orders.
+     */
+    removeGuest(name) {
+        const tab = this.getGuestTab(name);
+        if (tab.drinks.length > 0) {
+            return { success: false, reason: 'hasOrders' };
+        }
+
+        const guests = this.getGuestList();
+        const index = guests.indexOf(name);
+        if (index > -1) {
+            guests.splice(index, 1);
+            this.saveGuestList(guests);
+            // Also remove their tab
+            const tabs = this.getAllTabs();
+            delete tabs[name];
+            this._saveTabs(tabs);
+            return { success: true };
+        }
+        return { success: false, reason: 'notFound' };
+    },
+
+    /**
+     * Import guests from CSV.
+     * Returns number of guests added.
+     */
+    importGuestsFromCSV(csvText) {
+        const lines = csvText.split(/[\r\n]+/).filter(line => line.trim());
+        const guests = [];
+
+        lines.forEach(line => {
+            // Handle both comma and semicolon separated, and quoted values
+            const name = line.replace(/["']/g, '').trim();
+            if (name && name.length > 0) {
+                guests.push(name);
+            }
+        });
+
+        if (guests.length > 0) {
+            this.saveGuestList(guests);
+            this.init(); // Re-initialize tabs
+            return guests.length;
+        }
+        return 0;
+    },
+
+    /**
+     * Reset guest list to defaults from config.
+     */
+    resetGuestList() {
+        localStorage.removeItem(this._key('customGuests'));
     }
 };
 

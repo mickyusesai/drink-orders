@@ -152,7 +152,10 @@ const APP_CONFIG = {
     appSubtitle: "Honesty Bar",
 
     // Opslagsleutel prefix voor localStorage
-    storagePrefix: "campingDuLac_"
+    storagePrefix: "campingDuLac_",
+
+    // PIN code voor beheerderstoegang
+    adminPin: "01238"
 };
 
 // Export voor gebruik in andere modules

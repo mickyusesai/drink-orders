@@ -142,7 +142,7 @@ const Admin = {
         if (tab.drinks.length === 0) {
             html += '<p>Geen bestellingen voor deze gast.</p>';
         } else {
-            html += '<table class="details-table"><thead><tr><th>Item</th><th>Prijs</th><th>Tijd</th></tr></thead><tbody>';
+            html += '<table class="details-table"><thead><tr><th>Item</th><th>Prijs</th><th>Tijd</th><th>Actie</th></tr></thead><tbody>';
 
             const sortedDrinks = [...tab.drinks].sort((a, b) => b.timestamp - a.timestamp);
 
@@ -157,12 +157,37 @@ const Admin = {
                         <td>${drink.name}</td>
                         <td>${App.formatPrice(drink.price)}</td>
                         <td>${time}</td>
+                        <td>
+                            <button class="remove-drink-btn" onclick="Admin.removeDrinkFromGuest('${this.escapeHtml(guestName)}', '${drink.id}')" title="Verwijder">-</button>
+                        </td>
                     </tr>
                 `;
             });
 
             html += '</tbody></table>';
         }
+
+        // Add drink section
+        html += `
+            <div class="add-drink-section">
+                <h4>Drankje toevoegen</h4>
+                <div class="add-drink-controls">
+                    <select id="admin-drink-select" class="admin-drink-select">
+                        <option value="">-- Kies drankje --</option>
+        `;
+
+        DRINK_CATEGORIES.forEach(category => {
+            category.items.forEach(item => {
+                html += `<option value="${item}|${category.price}">${item} (${App.formatPrice(category.price)})</option>`;
+            });
+        });
+
+        html += `
+                    </select>
+                    <button class="add-drink-btn" onclick="Admin.addDrinkToGuest('${this.escapeHtml(guestName)}')">+</button>
+                </div>
+            </div>
+        `;
 
         html += `
             </div>
@@ -177,6 +202,32 @@ const Admin = {
 
         content.innerHTML = html;
         modal.classList.add('show');
+    },
+
+    /**
+     * Add a drink to a guest from admin view.
+     */
+    addDrinkToGuest(guestName) {
+        const select = document.getElementById('admin-drink-select');
+        if (!select.value) return;
+
+        const [drinkName, priceStr] = select.value.split('|');
+        const price = parseFloat(priceStr);
+
+        Storage.addDrink(guestName, drinkName, price);
+        this.renderAdminView();
+        App.renderGuestButtons();
+        this.showGuestDetails(guestName);
+    },
+
+    /**
+     * Remove a specific drink from a guest.
+     */
+    removeDrinkFromGuest(guestName, drinkId) {
+        Storage.removeDrink(guestName, drinkId);
+        this.renderAdminView();
+        App.renderGuestButtons();
+        this.showGuestDetails(guestName);
     },
 
     /**
@@ -366,27 +417,254 @@ const Admin = {
 
     /**
      * Start a new week (clear all data).
+     * Automatically creates a backup first.
      */
     startNewWeek() {
         const confirmed = confirm(
             'Dit zal ALLE gasten tabs en betalingsgegevens PERMANENT VERWIJDEREN.\n\n' +
-            'Zorg ervoor dat je de gegevens eerst hebt geëxporteerd of geprint!\n\n' +
+            'Er wordt automatisch een backup gemaakt voordat de gegevens worden gewist.\n\n' +
             'Weet je zeker dat je een nieuwe week wilt starten?'
         );
 
         if (confirmed) {
             const doubleConfirm = confirm(
                 'LAATSTE WAARSCHUWING: Alle gegevens gaan verloren.\n\n' +
-                'Klik OK om te bevestigen en opnieuw te beginnen.'
+                'Klik OK om automatisch een backup te downloaden en opnieuw te beginnen.'
             );
 
             if (doubleConfirm) {
+                // Auto-backup before clearing
+                const timestamp = new Date().toISOString().slice(0, 10);
+                const json = Storage.backup();
+                this.downloadFile(json, `honesty-bar-backup-${timestamp}.json`, 'application/json');
+
+                // Clear and reinitialize
                 Storage.clearAll();
                 Storage.init();
                 this.renderAdminView();
                 App.renderGuestButtons();
-                alert('Nieuwe week gestart! Alle tabs zijn gewist.');
+                alert('Backup gedownload en nieuwe week gestart! Alle tabs zijn gewist.');
             }
+        }
+    },
+
+    /**
+     * Show restore dialog.
+     */
+    showRestoreDialog() {
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Backup Herstellen</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="restore-warning">⚠️ Let op: Dit zal alle huidige gegevens overschrijven!</p>
+                <div class="restore-upload">
+                    <label for="backup-file" class="upload-label">Selecteer backup bestand:</label>
+                    <input type="file" id="backup-file" accept=".json" class="file-input" onchange="Admin.handleBackupFile(event)">
+                </div>
+                <div id="restore-preview" class="restore-preview"></div>
+            </div>
+        `;
+
+        modal.classList.add('show');
+    },
+
+    /**
+     * Handle backup file selection.
+     */
+    handleBackupFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                const preview = document.getElementById('restore-preview');
+
+                // Count guests with orders
+                let guestCount = 0;
+                let totalAmount = 0;
+                Object.keys(data).forEach(name => {
+                    if (data[name].drinks && data[name].drinks.length > 0) {
+                        guestCount++;
+                        totalAmount += data[name].total || 0;
+                    }
+                });
+
+                preview.innerHTML = `
+                    <div class="preview-info">
+                        <p><strong>Backup bevat:</strong></p>
+                        <p>${guestCount} gasten met bestellingen</p>
+                        <p>Totale omzet: ${App.formatPrice(totalAmount)}</p>
+                    </div>
+                    <button class="action-btn paid-btn restore-btn" onclick="Admin.confirmRestore()">Herstellen</button>
+                `;
+
+                // Store data temporarily
+                this._pendingRestore = e.target.result;
+            } catch (err) {
+                const preview = document.getElementById('restore-preview');
+                preview.innerHTML = '<p class="error-text">Ongeldig backup bestand!</p>';
+            }
+        };
+        reader.readAsText(file);
+    },
+
+    /**
+     * Confirm and perform restore.
+     */
+    confirmRestore() {
+        if (!this._pendingRestore) return;
+
+        const confirmed = confirm('Weet je zeker dat je deze backup wilt herstellen? Alle huidige gegevens worden overschreven.');
+
+        if (confirmed) {
+            const success = Storage.restore(this._pendingRestore);
+            if (success) {
+                this._pendingRestore = null;
+                this.closeModal();
+                this.renderAdminView();
+                App.renderGuestButtons();
+                alert('Backup succesvol hersteld!');
+            } else {
+                alert('Fout bij het herstellen van de backup.');
+            }
+        }
+    },
+
+    // ==========================================================================
+    // GUEST MANAGEMENT
+    // ==========================================================================
+
+    /**
+     * Add a new guest.
+     */
+    addNewGuest() {
+        const input = document.getElementById('new-guest-name');
+        const name = input.value.trim();
+
+        if (!name) {
+            alert('Voer een naam in.');
+            return;
+        }
+
+        const success = Storage.addGuest(name);
+        if (success) {
+            input.value = '';
+            App.renderGuestButtons();
+            alert(`"${name}" toegevoegd aan de gastenlijst.`);
+        } else {
+            alert(`"${name}" bestaat al in de gastenlijst.`);
+        }
+    },
+
+    /**
+     * Import guests from CSV file.
+     */
+    importGuestsCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const confirmed = confirm(
+            'Dit zal de huidige gastenlijst VERVANGEN met de namen uit het CSV bestand.\n\n' +
+            'Bestaande bestellingen blijven behouden.\n\n' +
+            'Doorgaan?'
+        );
+
+        if (!confirmed) {
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const count = Storage.importGuestsFromCSV(e.target.result);
+            if (count > 0) {
+                App.renderGuestButtons();
+                alert(`${count} gasten geïmporteerd uit CSV.`);
+            } else {
+                alert('Geen geldige namen gevonden in het bestand.');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    },
+
+    /**
+     * Show guest list manager modal.
+     */
+    showGuestListManager() {
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+        const guestList = Storage.getGuestList();
+        const tabs = Storage.getAllTabs();
+
+        let html = `
+            <div class="modal-header">
+                <h2>Gastenlijst Bewerken</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body guest-list-manager">
+                <p class="manager-hint">Klik op de X om een gast te verwijderen. Gasten met bestellingen kunnen niet worden verwijderd.</p>
+                <div class="guest-list-items">
+        `;
+
+        guestList.forEach(name => {
+            const tab = tabs[name];
+            const hasOrders = tab && tab.drinks && tab.drinks.length > 0;
+
+            html += `
+                <div class="guest-list-item ${hasOrders ? 'has-orders' : ''}">
+                    <span class="guest-list-name">${name}</span>
+                    ${hasOrders
+                        ? `<span class="guest-orders-badge">${tab.drinks.length} items</span>`
+                        : `<button class="remove-guest-btn" onclick="Admin.removeGuest('${this.escapeHtml(name)}')">&times;</button>`
+                    }
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+                <div class="manager-actions">
+                    <button class="export-btn danger" onclick="Admin.resetGuestListToDefault()">Reset naar Standaard</button>
+                </div>
+            </div>
+        `;
+
+        content.innerHTML = html;
+        modal.classList.add('show');
+    },
+
+    /**
+     * Remove a guest from the list.
+     */
+    removeGuest(name) {
+        const result = Storage.removeGuest(name);
+        if (result.success) {
+            App.renderGuestButtons();
+            this.showGuestListManager(); // Refresh the modal
+        } else if (result.reason === 'hasOrders') {
+            alert(`"${name}" kan niet worden verwijderd omdat er bestellingen zijn.`);
+        }
+    },
+
+    /**
+     * Reset guest list to default from config.
+     */
+    resetGuestListToDefault() {
+        const confirmed = confirm('Weet je zeker dat je de gastenlijst wilt resetten naar de standaardlijst? Bestaande bestellingen blijven behouden.');
+        if (confirmed) {
+            Storage.resetGuestList();
+            Storage.init();
+            App.renderGuestButtons();
+            this.showGuestListManager();
+            alert('Gastenlijst gereset naar standaard.');
         }
     }
 };

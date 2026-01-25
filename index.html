@@ -17,12 +17,12 @@
         <header class="app-header">
             <div class="header-content">
                 <div class="logo-section">
-                    <img src="images/logo-camping.png" alt="Camping du Lac" class="logo-camping">
+                    <img src="images/logo-camping.svg" alt="Camping du Lac" class="logo-camping">
                     <div class="title-section">
                         <h1 id="app-title">Honesty Bar</h1>
                         <span id="app-subtitle" class="subtitle">Camping du Lac</span>
                     </div>
-                    <img src="images/logo-villavibes.png" alt="Villa Vibes" class="logo-vibes">
+                    <img src="images/logo-villavibes.svg" alt="Villa Vibes" class="logo-vibes">
                 </div>
                 <nav class="main-nav">
                     <button class="nav-btn active" data-view="guests">Bestellen</button>
@@ -45,6 +45,9 @@
                 <div class="success-drink-name"></div>
                 <div class="success-message"></div>
                 <div class="success-total"></div>
+                <div class="success-actions">
+                    <button class="another-drink-btn" onclick="App.orderAnotherDrink()">Nog een drankje</button>
+                </div>
                 <div class="success-footer">
                     <button class="undo-link" onclick="App.undoLastDrink()">Ongedaan maken</button>
                     <span class="auto-close-hint">Sluit automatisch</span>
@@ -117,11 +120,27 @@
                     <button class="export-btn" onclick="Admin.exportCSV()">Download CSV</button>
                     <button class="export-btn" onclick="Admin.exportDetailedCSV()">Detail CSV</button>
                     <button class="export-btn" onclick="Admin.backupData()">Backup</button>
+                    <button class="export-btn" onclick="Admin.showRestoreDialog()">Herstellen</button>
                     <button class="export-btn danger" onclick="Admin.startNewWeek()">Nieuwe Week</button>
                 </div>
 
                 <h3>Gasten Overzicht</h3>
                 <div id="admin-guests-table" class="admin-table-container"></div>
+
+                <div class="guest-management-section">
+                    <h3>Gastenlijst Beheren</h3>
+                    <div class="guest-management-actions">
+                        <div class="add-guest-form">
+                            <input type="text" id="new-guest-name" placeholder="Nieuwe gast naam..." class="new-guest-input">
+                            <button class="export-btn" onclick="Admin.addNewGuest()">Toevoegen</button>
+                        </div>
+                        <div class="csv-import-form">
+                            <label for="guest-csv-file" class="export-btn">CSV Importeren</label>
+                            <input type="file" id="guest-csv-file" accept=".csv,.txt" class="hidden-file-input" onchange="Admin.importGuestsCSV(event)">
+                        </div>
+                        <button class="export-btn" onclick="Admin.showGuestListManager()">Gastenlijst Bewerken</button>
+                    </div>
+                </div>
             </section>
         </main>
 
@@ -129,6 +148,36 @@
         <div id="details-modal" class="modal">
             <div class="modal-overlay" onclick="Admin.closeModal()"></div>
             <div class="modal-content" id="details-content"></div>
+        </div>
+
+        <!-- PIN Modal for Admin Access -->
+        <div id="pin-modal" class="modal">
+            <div class="modal-overlay" onclick="App.closePinModal()"></div>
+            <div class="modal-content pin-modal-content">
+                <div class="modal-header">
+                    <h2>Beheer</h2>
+                    <button class="close-btn" onclick="App.closePinModal()">&times;</button>
+                </div>
+                <div class="modal-body pin-body">
+                    <p class="pin-label">Voer PIN in:</p>
+                    <input type="password" id="pin-input" class="pin-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+                    <p id="pin-error" class="pin-error"></p>
+                    <div class="pin-keypad">
+                        <button class="pin-key" onclick="App.addPinDigit('1')">1</button>
+                        <button class="pin-key" onclick="App.addPinDigit('2')">2</button>
+                        <button class="pin-key" onclick="App.addPinDigit('3')">3</button>
+                        <button class="pin-key" onclick="App.addPinDigit('4')">4</button>
+                        <button class="pin-key" onclick="App.addPinDigit('5')">5</button>
+                        <button class="pin-key" onclick="App.addPinDigit('6')">6</button>
+                        <button class="pin-key" onclick="App.addPinDigit('7')">7</button>
+                        <button class="pin-key" onclick="App.addPinDigit('8')">8</button>
+                        <button class="pin-key" onclick="App.addPinDigit('9')">9</button>
+                        <button class="pin-key pin-clear" onclick="App.clearPin()">C</button>
+                        <button class="pin-key" onclick="App.addPinDigit('0')">0</button>
+                        <button class="pin-key pin-submit" onclick="App.submitPin()">OK</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

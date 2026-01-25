@@ -9,6 +9,7 @@ const App = {
     lastAddedDrink: null,
     undoTimeout: null,
     currentView: 'guests',
+    adminUnlocked: false,
 
     /**
      * Initialize the application.
@@ -71,8 +72,9 @@ const App = {
         container.innerHTML = '';
 
         const tabs = Storage.getAllTabs();
+        const guestList = Storage.getGuestList();
 
-        GUEST_NAMES.forEach(name => {
+        guestList.forEach(name => {
             const btn = document.createElement('button');
             btn.className = 'guest-btn';
             btn.dataset.guest = name;
@@ -244,6 +246,24 @@ const App = {
     },
 
     /**
+     * Order another drink for the same guest.
+     * Stays on drinks view without returning to guest selection.
+     */
+    orderAnotherDrink() {
+        this.hideSuccessOverlay();
+        this.lastAddedDrink = null;
+        this.clearUndoTimeout();
+
+        // Update the guest total display
+        if (this.selectedGuest) {
+            const tab = Storage.getGuestTab(this.selectedGuest);
+            document.getElementById('selected-guest-total').textContent =
+                tab.total > 0 ? `Huidig: ${this.formatPrice(tab.total)}` : '';
+        }
+        // Stay on drinks view - don't change selectedGuest
+    },
+
+    /**
      * Hide success overlay.
      */
     hideSuccessOverlay() {
@@ -329,9 +349,10 @@ const App = {
     renderTabView() {
         const container = document.getElementById('tab-content');
         const guestSelect = document.getElementById('tab-guest-select');
+        const guestList = Storage.getGuestList();
 
         guestSelect.innerHTML = '<option value="">-- Kies je naam --</option>';
-        GUEST_NAMES.forEach(name => {
+        guestList.forEach(name => {
             const option = document.createElement('option');
             option.value = name;
             option.textContent = name;
@@ -404,7 +425,12 @@ const App = {
             btn.addEventListener('click', () => {
                 const view = btn.dataset.view;
                 if (view) {
-                    this.showView(view);
+                    // Admin view requires PIN
+                    if (view === 'admin' && !this.adminUnlocked) {
+                        this.showPinModal();
+                    } else {
+                        this.showView(view);
+                    }
                 }
             });
         });
@@ -421,6 +447,69 @@ const App = {
                 this.closePopupAndReset();
             }
         });
+
+        // PIN input enter key
+        document.getElementById('pin-input').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                this.submitPin();
+            }
+        });
+    },
+
+    /**
+     * Show PIN modal for admin access.
+     */
+    showPinModal() {
+        document.getElementById('pin-modal').classList.add('show');
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-error').textContent = '';
+        document.getElementById('pin-input').focus();
+    },
+
+    /**
+     * Close PIN modal.
+     */
+    closePinModal() {
+        document.getElementById('pin-modal').classList.remove('show');
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-error').textContent = '';
+    },
+
+    /**
+     * Add digit to PIN input.
+     */
+    addPinDigit(digit) {
+        const input = document.getElementById('pin-input');
+        if (input.value.length < 5) {
+            input.value += digit;
+        }
+    },
+
+    /**
+     * Clear PIN input.
+     */
+    clearPin() {
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-error').textContent = '';
+    },
+
+    /**
+     * Submit PIN and verify.
+     */
+    submitPin() {
+        const input = document.getElementById('pin-input');
+        const error = document.getElementById('pin-error');
+
+        if (input.value === APP_CONFIG.adminPin) {
+            this.adminUnlocked = true;
+            this.closePinModal();
+            this.showView('admin');
+        } else {
+            error.textContent = 'Onjuiste PIN';
+            input.value = '';
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+        }
     }
 };
 
