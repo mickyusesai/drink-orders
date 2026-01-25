@@ -361,6 +361,9 @@ const App = {
 
         this.selectedGuest = name;
 
+        // Re-render drinks to show this guest's favorites
+        this.renderDrinkButtons();
+
         document.getElementById('selected-guest-name').textContent = name;
         document.getElementById('selected-guest-total').textContent =
             tab.total > 0 ? `Huidig: ${this.formatPrice(tab.total)}` : '';
