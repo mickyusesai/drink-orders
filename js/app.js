@@ -21,6 +21,11 @@ const App = {
         this.setupEventListeners();
         this.showView('guests');
 
+        // Initialize Firebase sync for real-time multi-device support
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.init();
+        }
+
         // Check if entry access is required
         if (!this.checkEntryAccess()) {
             this.showEntryModal();

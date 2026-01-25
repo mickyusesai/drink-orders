@@ -75,10 +75,14 @@ const Storage = {
     },
 
     /**
-     * Save all tabs to storage.
+     * Save all tabs to storage and sync to cloud.
      */
     _saveTabs(tabs) {
         localStorage.setItem(this._key('tabs'), JSON.stringify(tabs));
+        // Sync to Firebase if available
+        if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
+            FirebaseSync.saveTabs(tabs);
+        }
     },
 
     /**
@@ -245,6 +249,10 @@ const Storage = {
      */
     clearAll() {
         localStorage.removeItem(this._key('tabs'));
+        // Also clear cloud data
+        if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
+            FirebaseSync.clearAllData();
+        }
     },
 
     /**
@@ -289,10 +297,14 @@ const Storage = {
     },
 
     /**
-     * Save a custom guest list.
+     * Save a custom guest list and sync to cloud.
      */
     saveGuestList(guests) {
         localStorage.setItem(this._key('customGuests'), JSON.stringify(guests));
+        // Sync to Firebase if available
+        if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
+            FirebaseSync.saveGuestList(guests);
+        }
     },
 
     /**
@@ -382,10 +394,14 @@ const Storage = {
     },
 
     /**
-     * Enable or disable a toggleable category.
+     * Enable or disable a toggleable category and sync to cloud.
      */
     setCategoryEnabled(toggleKey, enabled) {
         localStorage.setItem(this._key('category_' + toggleKey), enabled ? 'true' : 'false');
+        // Sync to Firebase if available
+        if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
+            FirebaseSync.saveCategoryToggle(toggleKey, enabled);
+        }
     }
 };
 
