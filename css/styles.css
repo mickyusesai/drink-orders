@@ -593,7 +593,8 @@ body {
 
 .favorites-section {
     padding: var(--spacing-md);
-    padding-bottom: 0;
+    padding-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
 }
 
 .favorites-title {
