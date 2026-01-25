@@ -147,31 +147,37 @@ const App = {
     },
 
     /**
-     * Get icon for a drink/item name.
+     * Get icon filename for a drink/item name.
      */
     getItemIcon(itemName) {
         const name = itemName.toLowerCase();
-        if (name.includes('wijn') || name.includes('wine')) return '🍷';
-        if (name.includes('bier') || name.includes('ipa') || name.includes('desperados')) return '🍺';
-        if (name.includes('water')) return '💧';
-        if (name.includes('chips') || name.includes('snack')) return '🍿';
-        if (name.includes('thee') || name.includes('koffie') || name.includes('coffee')) return '☕';
-        if (name.includes('fris') || name.includes('redbull')) return '🥤';
-        if (name.includes('cocktail') || name.includes('mocktail') || name.includes('mixer')) return '🍹';
-        if (name.includes('panini') || name.includes('smoothie') || name.includes('ijsje')) return '🍽️';
-        if (name.includes('watersport') || name.includes('kayak') || name.includes('pedalo') || name.includes('sup')) return '🚣';
-        return '🛒'; // Default
+        if (name.includes('wijn') || name.includes('wine') || name.includes('fles wijn')) return 'wine.png';
+        if (name.includes('bier') || name.includes('ipa') || name.includes('desperados')) return 'beer.png';
+        if (name.includes('water') && !name.includes('watersport')) return 'water.png';
+        if (name.includes('chips')) return 'chips.png';
+        if (name.includes('snack')) return 'snack.png';
+        if (name.includes('thee') || name.includes('koffie') || name.includes('coffee') || name.includes('tea')) return 'coffee tea.png';
+        if (name.includes('fris') || name.includes('redbull')) return 'soft drinks redbull.png';
+        if (name.includes('cocktail') || name.includes('mocktail') || name.includes('mixer')) return 'cocktails mocktails.png';
+        if (name.includes('panini')) return 'panini.png';
+        if (name.includes('smoothie')) return 'smoothie.png';
+        if (name.includes('ijsje') || name.includes('ice')) return 'ice cream.png';
+        if (name.includes('watersport') || name.includes('kayak') || name.includes('pedalo') || name.includes('sup')) return 'water sports.png';
+        return null; // No icon
     },
 
     /**
-     * Get unique icons for a guest's orders.
+     * Get unique icon images HTML for a guest's orders.
      */
-    getGuestIcons(drinks) {
+    getGuestIconsHtml(drinks) {
         const icons = new Set();
         drinks.forEach(drink => {
-            icons.add(this.getItemIcon(drink.name));
+            const icon = this.getItemIcon(drink.name);
+            if (icon) icons.add(icon);
         });
-        return Array.from(icons).slice(0, 5).join(''); // Max 5 icons
+        return Array.from(icons).slice(0, 12).map(icon =>
+            `<img src="images/${icon}" alt="" class="guest-icon">`
+        ).join('');
     },
 
     /**
@@ -201,7 +207,7 @@ const App = {
             if (tabs[name] && tabs[name].drinks && tabs[name].drinks.length > 0) {
                 const badge = document.createElement('span');
                 badge.className = 'guest-icons-badge';
-                badge.textContent = this.getGuestIcons(tabs[name].drinks);
+                badge.innerHTML = this.getGuestIconsHtml(tabs[name].drinks);
                 btn.appendChild(badge);
             }
 

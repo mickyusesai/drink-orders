@@ -408,8 +408,17 @@ body {
 }
 
 .guest-icons-badge {
-    font-size: 12px;
-    line-height: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    max-width: 100%;
+}
+
+.guest-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
 }
 
 .guest-btn.paid {
