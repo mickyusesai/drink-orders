@@ -193,6 +193,37 @@
                 </div>
             </div>
         </div>
+
+        <!-- Entry Code Modal (first time access) -->
+        <div id="entry-modal" class="modal entry-modal">
+            <div class="modal-content pin-modal-content entry-content">
+                <div class="entry-header">
+                    <img src="images/logo-camping.webp" alt="Camping du Lac" class="entry-logo">
+                    <img src="images/logo-villavibes.png" alt="Villa Vibes" class="entry-logo">
+                </div>
+                <h2 class="entry-title">Honesty Bar</h2>
+                <p class="entry-subtitle">Camping du Lac</p>
+                <div class="modal-body pin-body">
+                    <p class="pin-label">Voer toegangscode in:</p>
+                    <input type="password" id="entry-pin-input" class="pin-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+                    <p id="entry-pin-error" class="pin-error"></p>
+                    <div class="pin-keypad">
+                        <button class="pin-key" onclick="App.addEntryDigit('1')">1</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('2')">2</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('3')">3</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('4')">4</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('5')">5</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('6')">6</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('7')">7</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('8')">8</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('9')">9</button>
+                        <button class="pin-key pin-clear" onclick="App.clearEntryPin()">C</button>
+                        <button class="pin-key" onclick="App.addEntryDigit('0')">0</button>
+                        <button class="pin-key pin-submit" onclick="App.submitEntryPin()">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

@@ -20,6 +20,83 @@ const App = {
         this.renderDrinkButtons();
         this.setupEventListeners();
         this.showView('guests');
+
+        // Check if entry access is required
+        if (!this.checkEntryAccess()) {
+            this.showEntryModal();
+        }
+    },
+
+    /**
+     * Check if the user has valid entry access.
+     * Access is stored in localStorage and expires after 7 days.
+     */
+    checkEntryAccess() {
+        const accessData = localStorage.getItem(APP_CONFIG.storagePrefix + 'entryAccess');
+        if (!accessData) return false;
+
+        try {
+            const { timestamp } = JSON.parse(accessData);
+            const sevenDays = 7 * 24 * 60 * 60 * 1000;
+            return (Date.now() - timestamp) < sevenDays;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /**
+     * Grant entry access (store in localStorage).
+     */
+    grantEntryAccess() {
+        localStorage.setItem(APP_CONFIG.storagePrefix + 'entryAccess', JSON.stringify({
+            timestamp: Date.now()
+        }));
+    },
+
+    /**
+     * Show entry code modal.
+     */
+    showEntryModal() {
+        document.getElementById('entry-modal').classList.add('show');
+        document.getElementById('entry-pin-input').value = '';
+        document.getElementById('entry-pin-error').textContent = '';
+        document.getElementById('entry-pin-input').focus();
+    },
+
+    /**
+     * Add digit to entry PIN input.
+     */
+    addEntryDigit(digit) {
+        const input = document.getElementById('entry-pin-input');
+        if (input.value.length < 5) {
+            input.value += digit;
+        }
+    },
+
+    /**
+     * Clear entry PIN input.
+     */
+    clearEntryPin() {
+        document.getElementById('entry-pin-input').value = '';
+        document.getElementById('entry-pin-error').textContent = '';
+    },
+
+    /**
+     * Submit entry PIN and verify.
+     */
+    submitEntryPin() {
+        const input = document.getElementById('entry-pin-input');
+        const error = document.getElementById('entry-pin-error');
+
+        if (input.value === APP_CONFIG.entryPin) {
+            this.grantEntryAccess();
+            document.getElementById('entry-modal').classList.remove('show');
+        } else {
+            error.textContent = 'Onjuiste code';
+            input.value = '';
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+        }
     },
 
     /**
@@ -469,6 +546,13 @@ const App = {
         document.getElementById('pin-input').addEventListener('keyup', (e) => {
             if (e.key === 'Enter') {
                 this.submitPin();
+            }
+        });
+
+        // Entry PIN input enter key
+        document.getElementById('entry-pin-input').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                this.submitEntryPin();
             }
         });
     },
