@@ -228,6 +228,9 @@ const Admin = {
      * Remove a specific drink from a guest.
      */
     removeDrinkFromGuest(guestName, drinkId) {
+        if (!confirm('Weet je zeker dat je dit item wilt verwijderen?')) {
+            return;
+        }
         Storage.removeDrink(guestName, drinkId);
         this.renderAdminView();
         App.renderGuestButtons();

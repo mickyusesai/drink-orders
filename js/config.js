@@ -176,7 +176,7 @@ const APP_CONFIG = {
     storagePrefix: "campingDuLac_",
 
     // PIN code voor beheerderstoegang
-    adminPin: "01238"
+    adminPin: "12345"
 };
 
 // Export voor gebruik in andere modules
