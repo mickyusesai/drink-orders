@@ -222,11 +222,80 @@ const App = {
     },
 
     /**
+     * Get favorites for a guest (top 2 items ordered 2+ times, only if 5+ total orders).
+     */
+    getGuestFavorites(guestName) {
+        if (!guestName) return [];
+
+        const tab = Storage.getGuestTab(guestName);
+        if (!tab.drinks || tab.drinks.length < 5) return [];
+
+        // Count occurrences of each item
+        const counts = {};
+        tab.drinks.forEach(drink => {
+            counts[drink.name] = (counts[drink.name] || 0) + 1;
+        });
+
+        // Filter items ordered 2+ times and sort by count
+        const favorites = Object.entries(counts)
+            .filter(([name, count]) => count >= 2)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 2)
+            .map(([name]) => {
+                // Find the price for this item
+                const drink = tab.drinks.find(d => d.name === name);
+                return { name, price: drink.price };
+            });
+
+        return favorites;
+    },
+
+    /**
+     * Render favorites category at top of drink menu.
+     */
+    renderFavoritesCategory(container) {
+        const favorites = this.getGuestFavorites(this.selectedGuest);
+        if (favorites.length === 0) return;
+
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'drink-category favorites-category';
+
+        const header = document.createElement('div');
+        header.className = 'category-header';
+        header.style.backgroundColor = '#e91e63'; // Pink/magenta color for favorites
+        header.innerHTML = `<span class="category-name">Jouw favorieten:</span>`;
+        categoryDiv.appendChild(header);
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'category-items';
+
+        favorites.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'drink-btn';
+            btn.innerHTML = `
+                <span class="drink-btn-name">${item.name}</span>
+                <span class="drink-btn-price">${this.formatPrice(item.price)}</span>
+            `;
+            btn.style.setProperty('--category-color', '#e91e63');
+            btn.dataset.drink = item.name;
+            btn.dataset.price = item.price;
+            btn.addEventListener('click', () => this.addDrink(item.name, item.price));
+            itemsDiv.appendChild(btn);
+        });
+
+        categoryDiv.appendChild(itemsDiv);
+        container.appendChild(categoryDiv);
+    },
+
+    /**
      * Render drink category buttons - compact horizontal layout.
      */
     renderDrinkButtons() {
         const container = document.getElementById('drink-buttons');
         container.innerHTML = '';
+
+        // Render favorites category if guest has 5+ orders
+        this.renderFavoritesCategory(container);
 
         DRINK_CATEGORIES.forEach(category => {
             // Check if category is toggleable and if it's currently hidden
