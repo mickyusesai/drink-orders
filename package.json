@@ -1,0 +1,13 @@
+{
+  "name": "drink-orders",
+  "version": "1.0.0",
+  "description": "Campsite Honesty Bar static web app",
+  "private": true,
+  "scripts": {
+    "build": "echo \"No build step required for static site\"",
+    "start": "serve -s . -l tcp://0.0.0.0:${PORT:-3000}"
+  },
+  "dependencies": {
+    "serve": "^14.2.4"
+  }
+}
