@@ -227,7 +227,7 @@ const Storage = {
      */
     exportCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Gast,Totaal (EUR),Betaald,Aantal\n";
+        let csv = "Gast,Totaal (EUR),Betaald,Betaalmethode,Betaald op,Aantal\n";
 
         // Sort by name
         const sortedNames = Object.keys(tabs).sort();
@@ -237,7 +237,12 @@ const Storage = {
             if (tab.drinks.length > 0) {
                 const total = tab.total.toFixed(2).replace('.', ',');
                 const paid = tab.paid ? "Ja" : "Nee";
-                csv += `"${name}",${total},${paid},${tab.drinks.length}\n`;
+                const method = tab.paymentMethod === 'cash' ? 'Contant'
+                    : tab.paymentMethod === 'card' ? 'PIN' : '';
+                const paidAt = tab.paidAt
+                    ? new Date(tab.paidAt).toLocaleString(APP_CONFIG.locale)
+                    : '';
+                csv += `"${name}",${total},${paid},${method},"${paidAt}",${tab.drinks.length}\n`;
             }
         });
 

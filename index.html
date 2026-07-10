@@ -26,7 +26,6 @@
                 </div>
                 <nav class="main-nav">
                     <button class="nav-btn active" data-view="guests">Bestellen</button>
-                    <button class="nav-btn" data-view="tab">Rekening</button>
                     <button class="nav-btn admin-nav" data-view="admin">Beheer</button>
                 </nav>
             </div>
@@ -81,27 +80,9 @@
                         <span id="selected-guest-name" class="guest-name-display"></span>
                         <span id="selected-guest-total" class="guest-total-display"></span>
                     </div>
+                    <button class="view-total-btn" onclick="App.showMyTab()">Bekijk totaal</button>
                 </div>
                 <div id="drink-buttons" class="drink-categories"></div>
-            </section>
-        </main>
-
-        <!-- Tab View -->
-        <main id="tab-view" class="view">
-            <section class="tab-section">
-                <div class="section-header">
-                    <h2>Je rekening</h2>
-                    <p class="section-hint">Bekijk wat je hebt besteld</p>
-                </div>
-                <div class="tab-guest-selector">
-                    <label for="tab-guest-select">Selecteer je naam:</label>
-                    <select id="tab-guest-select" class="guest-select">
-                        <option value="">-- Kies je naam --</option>
-                    </select>
-                </div>
-                <div id="tab-content" class="tab-content">
-                    <p class="placeholder-text">Selecteer je naam hierboven.</p>
-                </div>
             </section>
         </main>
 

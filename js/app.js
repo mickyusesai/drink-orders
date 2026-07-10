@@ -139,9 +139,7 @@ const App = {
             btn.classList.toggle('active', btn.dataset.view === navViewName);
         });
 
-        if (viewName === 'tab') {
-            this.renderTabView();
-        } else if (viewName === 'admin') {
+        if (viewName === 'admin') {
             Admin.renderAdminView();
         } else if (viewName === 'guests') {
             this.renderGuestButtons();
@@ -361,11 +359,8 @@ const App = {
         const tab = Storage.getGuestTab(name);
 
         if (tab.paid) {
-            this.showMessage(
-                `${name} heeft al betaald`,
-                'Er kunnen geen bestellingen meer worden toegevoegd.',
-                'warning'
-            );
+            // Already settled: no new orders, but they can still see their bill
+            this.showTabFor(name);
             return;
         }
 
@@ -559,77 +554,87 @@ const App = {
     },
 
     /**
-     * Render the tab view.
+     * Escape HTML special characters for safe rendering.
      */
-    renderTabView() {
-        const container = document.getElementById('tab-content');
-        const guestSelect = document.getElementById('tab-guest-select');
-        const guestList = Storage.getGuestList();
-
-        guestSelect.innerHTML = '<option value="">-- Kies je naam --</option>';
-        guestList.forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            guestSelect.appendChild(option);
-        });
-
-        container.innerHTML = '<p class="placeholder-text">Selecteer je naam hierboven.</p>';
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     /**
-     * Show a specific guest's tab.
+     * Show the "Bekijk totaal" modal for the currently selected guest.
      */
-    showGuestTab(guestName) {
-        const container = document.getElementById('tab-content');
-        const tab = Storage.getGuestTab(guestName);
+    showMyTab() {
+        if (!this.selectedGuest) return;
+        this.showTabFor(this.selectedGuest);
+    },
 
+    /**
+     * Show a guest's bill (grouped items + total) in a modal.
+     */
+    showTabFor(guestName) {
+        const tab = Storage.getGuestTab(guestName);
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+
+        let listHtml;
         if (tab.drinks.length === 0) {
-            container.innerHTML = `
+            listHtml = `
                 <div class="empty-tab">
                     <div class="empty-tab-icon">🍺</div>
                     <p>Nog geen bestellingen.</p>
                 </div>
             `;
-            return;
+        } else {
+            const drinkCounts = {};
+            tab.drinks.forEach(drink => {
+                const key = `${drink.name}|${drink.price}`;
+                if (!drinkCounts[key]) {
+                    drinkCounts[key] = { name: drink.name, price: drink.price, count: 0 };
+                }
+                drinkCounts[key].count++;
+            });
+
+            listHtml = '<div class="tab-drinks-list">';
+            Object.values(drinkCounts).forEach(item => {
+                listHtml += `
+                    <div class="tab-drink-item">
+                        <span class="drink-count">${item.count}x</span>
+                        <span class="drink-name">${this.escapeHtml(item.name)}</span>
+                        <span class="drink-price">${this.formatPrice(item.price * item.count)}</span>
+                    </div>
+                `;
+            });
+            listHtml += '</div>';
         }
 
-        let html = `
-            <div class="tab-header-info">
-                <h3>${guestName}</h3>
-                ${tab.paid ? '<span class="paid-badge">BETAALD</span>' : ''}
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>${this.escapeHtml(guestName)}</h2>
+                ${tab.paid ? '<span class="paid-badge large">BETAALD</span>' : ''}
+                <button class="close-btn" onclick="App.closeTabModal()">&times;</button>
             </div>
-            <div class="tab-drinks-list">
-        `;
-
-        const drinkCounts = {};
-        tab.drinks.forEach(drink => {
-            const key = `${drink.name}|${drink.price}`;
-            if (!drinkCounts[key]) {
-                drinkCounts[key] = { name: drink.name, price: drink.price, count: 0 };
-            }
-            drinkCounts[key].count++;
-        });
-
-        Object.values(drinkCounts).forEach(item => {
-            html += `
-                <div class="tab-drink-item">
-                    <span class="drink-count">${item.count}x</span>
-                    <span class="drink-name">${item.name}</span>
-                    <span class="drink-price">${this.formatPrice(item.price * item.count)}</span>
+            <div class="modal-body my-tab-body">
+                ${listHtml}
+                <div class="tab-total">
+                    <span>Totaal</span>
+                    <span class="total-amount">${this.formatPrice(tab.total)}</span>
                 </div>
-            `;
-        });
-
-        html += `
             </div>
-            <div class="tab-total">
-                <span>Totaal</span>
-                <span class="total-amount">${this.formatPrice(tab.total)}</span>
+            <div class="modal-footer my-tab-footer">
+                <button class="action-btn details-btn tab-close-btn" onclick="App.closeTabModal()">Sluiten</button>
             </div>
         `;
 
-        container.innerHTML = html;
+        modal.classList.add('show');
+    },
+
+    /**
+     * Close the bill modal.
+     */
+    closeTabModal() {
+        document.getElementById('details-modal').classList.remove('show');
     },
 
     /**
@@ -648,12 +653,6 @@ const App = {
                     }
                 }
             });
-        });
-
-        document.getElementById('tab-guest-select').addEventListener('change', (e) => {
-            if (e.target.value) {
-                this.showGuestTab(e.target.value);
-            }
         });
 
         // Click on overlay background also closes and resets

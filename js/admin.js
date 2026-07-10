@@ -21,6 +21,10 @@ const Admin = {
         const summary = Storage.getSummary();
         const container = document.getElementById('admin-summary');
 
+        const paidSplit = (summary.totalPaidCash > 0 || summary.totalPaidCard > 0)
+            ? `<div class="summary-sub">contant ${App.formatPrice(summary.totalPaidCash)} · PIN ${App.formatPrice(summary.totalPaidCard)}</div>`
+            : '';
+
         container.innerHTML = `
             <div class="summary-card total">
                 <div class="summary-value">${App.formatPrice(summary.totalRevenue)}</div>
@@ -29,6 +33,7 @@ const Admin = {
             <div class="summary-card paid">
                 <div class="summary-value">${App.formatPrice(summary.totalPaid)}</div>
                 <div class="summary-label">Betaald (${summary.paidCount})</div>
+                ${paidSplit}
             </div>
             <div class="summary-card unpaid">
                 <div class="summary-value">${App.formatPrice(summary.totalUnpaid)}</div>
@@ -39,6 +44,15 @@ const Admin = {
                 <div class="summary-label">Gasten met Tab</div>
             </div>
         `;
+    },
+
+    /**
+     * Human label for a payment method.
+     */
+    paymentMethodLabel(method) {
+        if (method === 'cash') return 'Contant';
+        if (method === 'card') return 'PIN';
+        return null;
     },
 
     /**
@@ -80,7 +94,8 @@ const Admin = {
         sortedGuests.forEach(name => {
             const tab = tabs[name];
             const statusClass = tab.paid ? 'status-paid' : 'status-unpaid';
-            const statusText = tab.paid ? 'Betaald' : 'Open';
+            const methodLabel = this.paymentMethodLabel(tab.paymentMethod);
+            const statusText = tab.paid ? (methodLabel ? `Betaald (${methodLabel})` : 'Betaald') : 'Open';
 
             html += `
                 <tr class="${tab.paid ? 'row-paid' : ''}">
@@ -115,12 +130,71 @@ const Admin = {
     },
 
     /**
-     * Toggle paid status for a guest.
+     * Toggle paid status for a guest. Marking as paid first asks for the
+     * payment method (cash or card).
      */
-    togglePaid(guestName, paid) {
-        Storage.markAsPaid(guestName, paid);
+    togglePaid(guestName, paid, fromDetails = false) {
+        if (paid) {
+            this.showPaymentMethodModal(guestName, fromDetails);
+            return;
+        }
+        Storage.markAsPaid(guestName, false);
         this.renderAdminView();
         App.renderGuestButtons();
+        if (fromDetails) {
+            this.showGuestDetails(guestName);
+        }
+    },
+
+    /**
+     * Ask how the guest paid before marking the tab as paid.
+     */
+    showPaymentMethodModal(guestName, fromDetails = false) {
+        const tab = Storage.getGuestTab(guestName);
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+        const back = fromDetails ? 'true' : 'false';
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Betaling</h2>
+                <button class="close-btn" onclick="Admin.cancelPayment('${this.escapeHtml(guestName)}', ${back})">&times;</button>
+            </div>
+            <div class="modal-body payment-modal">
+                <p class="payment-question">Hoe heeft <strong>${guestName}</strong> betaald?</p>
+                <div class="payment-amount">${App.formatPrice(tab.total)}</div>
+                <div class="payment-method-buttons">
+                    <button class="payment-method-btn cash" onclick="Admin.confirmPayment('${this.escapeHtml(guestName)}', 'cash', ${back})">
+                        💶 Contant
+                    </button>
+                    <button class="payment-method-btn card" onclick="Admin.confirmPayment('${this.escapeHtml(guestName)}', 'card', ${back})">
+                        💳 PIN
+                    </button>
+                </div>
+                <button class="payment-cancel-btn" onclick="Admin.cancelPayment('${this.escapeHtml(guestName)}', ${back})">Annuleren</button>
+            </div>
+        `;
+
+        modal.classList.add('show');
+    },
+
+    confirmPayment(guestName, method, fromDetails) {
+        Storage.markAsPaid(guestName, true, method);
+        this.renderAdminView();
+        App.renderGuestButtons();
+        if (fromDetails) {
+            this.showGuestDetails(guestName);
+        } else {
+            this.closeModal();
+        }
+    },
+
+    cancelPayment(guestName, fromDetails) {
+        if (fromDetails) {
+            this.showGuestDetails(guestName);
+        } else {
+            this.closeModal();
+        }
     },
 
     /**
@@ -131,6 +205,18 @@ const Admin = {
         const modal = document.getElementById('details-modal');
         const content = document.getElementById('details-content');
 
+        let paidInfo = '';
+        if (tab.paid) {
+            const methodLabel = this.paymentMethodLabel(tab.paymentMethod);
+            const when = tab.paidAt
+                ? new Date(tab.paidAt).toLocaleString(APP_CONFIG.locale, {
+                    weekday: 'short', day: 'numeric', month: 'short',
+                    hour: '2-digit', minute: '2-digit'
+                })
+                : null;
+            paidInfo = `<p class="paid-info">Betaald${methodLabel ? ` met ${methodLabel.toLowerCase()}` : ''}${when ? ` op ${when}` : ''}</p>`;
+        }
+
         let html = `
             <div class="modal-header">
                 <h2>${guestName}</h2>
@@ -138,6 +224,7 @@ const Admin = {
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
+                ${paidInfo}
         `;
 
         if (tab.drinks.length === 0) {
@@ -195,8 +282,8 @@ const Admin = {
             <div class="modal-footer">
                 <div class="modal-total">Totaal: <strong>${App.formatPrice(tab.total)}</strong></div>
                 ${tab.paid
-                    ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', false); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Markeer als Open</button>`
-                    : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', true); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Markeer als Betaald</button>`
+                    ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', false, true)">Markeer als Open</button>`
+                    : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', true, true)">Markeer als Betaald</button>`
                 }
             </div>
         `;
