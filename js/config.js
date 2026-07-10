@@ -45,6 +45,16 @@ const DEFAULT_MENU = [
         ]
     },
     {
+        id: "mixers",
+        name: "Mixers",
+        color: "#e53935", // Red
+        items: [
+            { name: "Vodka", price: 4.50 },
+            { name: "Jack Daniels", price: 4.50 },
+            { name: "Bacardi", price: 4.50 }
+        ]
+    },
+    {
         id: "non-alcoholisch",
         name: "Non-alcoholisch",
         color: "#00a0d2", // Cyan blue (from camping website)
@@ -83,8 +93,7 @@ const DEFAULT_MENU = [
         toggleKey: "cocktails", // Unieke sleutel voor aan/uit zetten
         items: [
             { name: "Cocktail", price: 7.50 },
-            { name: "Mocktail", price: 5.00 },
-            { name: "Mixer (rum etc.)", price: 4.00 }
+            { name: "Mocktail", price: 5.00 }
         ]
     },
     {

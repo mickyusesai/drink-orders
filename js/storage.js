@@ -614,16 +614,31 @@ const Storage = {
             try {
                 const menu = JSON.parse(saved);
                 if (Array.isArray(menu) && menu.length > 0) {
-                    return menu.map(category => ({
+                    const normalized = menu.map(category => ({
                         ...category,
                         items: Object.values(category.items || {})
                     }));
+                    return this._mergeNewDefaultCategories(normalized);
                 }
             } catch (e) {
                 console.error('Error parsing stored menu:', e);
             }
         }
         return DEFAULT_MENU;
+    },
+
+    /**
+     * Add default categories that a previously saved menu doesn't know yet
+     * (e.g. a category added in a newer app version), at their default
+     * position. Existing categories and items stay untouched.
+     */
+    _mergeNewDefaultCategories(menu) {
+        DEFAULT_MENU.forEach((defaultCategory, index) => {
+            if (!menu.some(category => category.id === defaultCategory.id)) {
+                menu.splice(Math.min(index, menu.length), 0, defaultCategory);
+            }
+        });
+        return menu;
     },
 
     /**
