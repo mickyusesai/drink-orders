@@ -444,6 +444,7 @@ const Admin = {
                 const timestamp = new Date().toISOString().slice(0, 10);
                 const json = Storage.backup();
                 this.downloadFile(json, `honesty-bar-backup-${timestamp}.json`, 'application/json');
+                Storage.snapshotBackup(`${timestamp}-weekafsluiting`);
 
                 // Clear and reinitialize
                 Storage.clearAll();
@@ -461,6 +462,18 @@ const Admin = {
     showRestoreDialog() {
         const modal = document.getElementById('details-modal');
         const content = document.getElementById('details-content');
+        const autoBackups = Storage.listAutoBackups();
+
+        let autoBackupsHtml = '<p class="placeholder-text">Nog geen automatische backups.</p>';
+        if (autoBackups.length > 0) {
+            autoBackupsHtml = autoBackups.map(backup => `
+                <div class="auto-backup-item">
+                    <span class="auto-backup-label">${backup.label}</span>
+                    <span class="auto-backup-info">${backup.guestCount} gasten · ${App.formatPrice(backup.total)}</span>
+                    <button class="action-btn details-btn" onclick="Admin.restoreAutoBackup('${backup.key}')">Herstel</button>
+                </div>
+            `).join('');
+        }
 
         content.innerHTML = `
             <div class="modal-header">
@@ -469,6 +482,10 @@ const Admin = {
             </div>
             <div class="modal-body">
                 <p class="restore-warning">⚠️ Let op: Dit zal alle huidige gegevens overschrijven!</p>
+                <h4>Automatische backups</h4>
+                <p class="toggle-hint">De app bewaart automatisch een dagelijkse kopie (laatste 7).</p>
+                <div class="auto-backup-list">${autoBackupsHtml}</div>
+                <h4>Backup bestand</h4>
                 <div class="restore-upload">
                     <label for="backup-file" class="upload-label">Selecteer backup bestand:</label>
                     <input type="file" id="backup-file" accept=".json" class="file-input" onchange="Admin.handleBackupFile(event)">
@@ -478,6 +495,29 @@ const Admin = {
         `;
 
         modal.classList.add('show');
+    },
+
+    /**
+     * Restore one of the automatic backup snapshots.
+     */
+    restoreAutoBackup(storageKey) {
+        const json = localStorage.getItem(storageKey);
+        if (!json) {
+            alert('Backup niet gevonden.');
+            return;
+        }
+
+        const confirmed = confirm('Weet je zeker dat je deze automatische backup wilt herstellen? Alle huidige gegevens worden overschreven.');
+        if (!confirmed) return;
+
+        if (Storage.restore(json)) {
+            this.closeModal();
+            this.renderAdminView();
+            App.renderGuestButtons();
+            alert('Backup succesvol hersteld!');
+        } else {
+            alert('Fout bij het herstellen van de backup.');
+        }
     },
 
     /**

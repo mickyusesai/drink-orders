@@ -26,6 +26,11 @@ const App = {
             FirebaseSync.init();
         }
 
+        // Automatic daily backup — checked hourly because the kiosk tablet
+        // stays open 24/7 and rarely reloads the page.
+        Storage.autoBackup();
+        setInterval(() => Storage.autoBackup(), 60 * 60 * 1000);
+
         // Check if entry access is required
         if (!this.checkEntryAccess()) {
             this.showEntryModal();
