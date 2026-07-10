@@ -94,7 +94,9 @@ const FirebaseSync = {
     },
 
     /**
-     * Show sync status indicator.
+     * Show sync status indicator. After a few seconds the online message
+     * shrinks to a small dot that stays visible, so staff can always see at
+     * a glance whether the tablet is connected.
      */
     showSyncStatus(status) {
         let indicator = document.getElementById('sync-status');
@@ -104,18 +106,21 @@ const FirebaseSync = {
             document.body.appendChild(indicator);
         }
 
+        clearTimeout(this._statusTimeout);
+
         if (status === 'online') {
             indicator.className = 'sync-status online';
             indicator.innerHTML = '&#x2713; Gesynchroniseerd';
-            setTimeout(() => indicator.classList.add('hidden'), 3000);
+            this._statusTimeout = setTimeout(() => {
+                indicator.classList.add('minimized');
+                indicator.innerHTML = '';
+            }, 3000);
         } else if (status === 'syncing') {
             indicator.className = 'sync-status syncing';
             indicator.innerHTML = '&#x21bb; Synchroniseren...';
-            indicator.classList.remove('hidden');
         } else {
             indicator.className = 'sync-status offline';
             indicator.innerHTML = '&#x2717; Offline modus';
-            indicator.classList.remove('hidden');
         }
     },
 
@@ -196,6 +201,15 @@ const FirebaseSync = {
                     Storage.init();
                 }
                 this._rerender();
+            }
+        });
+
+        // Listen for PIN changes
+        this.db.ref('settings/pins').on('value', (snapshot) => {
+            const pins = snapshot.val();
+            if (pins) {
+                if (pins.admin) localStorage.setItem(APP_CONFIG.storagePrefix + 'adminPin', pins.admin);
+                if (pins.entry) localStorage.setItem(APP_CONFIG.storagePrefix + 'entryPin', pins.entry);
             }
         });
 
@@ -542,6 +556,16 @@ const FirebaseSync = {
                 }
             })
             .catch(err => console.error('Save backup error:', err));
+    },
+
+    /**
+     * Save the PIN codes to Firebase so all devices use the same ones.
+     */
+    savePins(pins) {
+        if (!this.db || !this.isOnline) return;
+
+        this.db.ref('settings/pins').set(pins)
+            .catch(err => console.error('Save pins error:', err));
     },
 
     /**

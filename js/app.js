@@ -31,10 +31,38 @@ const App = {
         Storage.autoBackup();
         setInterval(() => Storage.autoBackup(), 60 * 60 * 1000);
 
+        // Keep the tablet screen awake (kiosk runs 24/7)
+        this.initWakeLock();
+
         // Check if entry access is required
         if (!this.checkEntryAccess()) {
             this.showEntryModal();
         }
+    },
+
+    /**
+     * Keep the screen awake via the Wake Lock API (needs HTTPS). The lock is
+     * released by the browser when the tab is hidden, so re-request it on
+     * visibility changes and on touch as a fallback.
+     */
+    initWakeLock() {
+        if (!('wakeLock' in navigator)) return;
+
+        const request = async () => {
+            try {
+                this.wakeLock = await navigator.wakeLock.request('screen');
+            } catch (e) {
+                // Rejected (e.g. battery saver) — the next trigger retries
+            }
+        };
+
+        request();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') request();
+        });
+        document.addEventListener('click', () => {
+            if (!this.wakeLock || this.wakeLock.released) request();
+        });
     },
 
     /**
@@ -98,7 +126,7 @@ const App = {
         const input = document.getElementById('entry-pin-input');
         const error = document.getElementById('entry-pin-error');
 
-        if (input.value === APP_CONFIG.entryPin) {
+        if (input.value === Storage.getEntryPin()) {
             this.grantEntryAccess();
             document.getElementById('entry-modal').classList.remove('show');
         } else {
@@ -721,7 +749,7 @@ const App = {
         const input = document.getElementById('pin-input');
         const error = document.getElementById('pin-error');
 
-        if (input.value === APP_CONFIG.adminPin) {
+        if (input.value === Storage.getAdminPin()) {
             this.adminUnlocked = true;
             this.closePinModal();
             this.showView('admin');

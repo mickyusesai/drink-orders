@@ -99,7 +99,7 @@ const Admin = {
 
             html += `
                 <tr class="${tab.paid ? 'row-paid' : ''}">
-                    <td class="guest-name-cell">${name}</td>
+                    <td class="guest-name-cell">${this.escapeDisplay(name)}</td>
                     <td>${tab.drinks.length}</td>
                     <td class="total-cell">${App.formatPrice(tab.total)}</td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
@@ -121,12 +121,23 @@ const Admin = {
     },
 
     /**
-     * Escape HTML special characters.
+     * Escape a value for use inside an onclick="...('...')" handler:
+     * HTML-escapes, protects the double-quoted attribute, and
+     * backslash-escapes single quotes for the JS string.
      */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
-        return div.innerHTML.replace(/'/g, "\\'");
+        return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+    },
+
+    /**
+     * Escape text for plain HTML display.
+     */
+    escapeDisplay(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     /**
@@ -161,7 +172,7 @@ const Admin = {
                 <button class="close-btn" onclick="Admin.cancelPayment('${this.escapeHtml(guestName)}', ${back})">&times;</button>
             </div>
             <div class="modal-body payment-modal">
-                <p class="payment-question">Hoe heeft <strong>${guestName}</strong> betaald?</p>
+                <p class="payment-question">Hoe heeft <strong>${this.escapeDisplay(guestName)}</strong> betaald?</p>
                 <div class="payment-amount">${App.formatPrice(tab.total)}</div>
                 <div class="payment-method-buttons">
                     <button class="payment-method-btn cash" onclick="Admin.confirmPayment('${this.escapeHtml(guestName)}', 'cash', ${back})">
@@ -219,7 +230,7 @@ const Admin = {
 
         let html = `
             <div class="modal-header">
-                <h2>${guestName}</h2>
+                <h2>${this.escapeDisplay(guestName)}</h2>
                 ${tab.paid ? '<span class="paid-badge large">BETAALD</span>' : ''}
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
@@ -242,7 +253,7 @@ const Admin = {
                 });
                 html += `
                     <tr>
-                        <td>${drink.name}</td>
+                        <td>${this.escapeDisplay(drink.name)}</td>
                         <td>${App.formatPrice(drink.price)}</td>
                         <td>${time}</td>
                         <td>
@@ -266,7 +277,7 @@ const Admin = {
 
         Storage.getMenu().forEach(category => {
             category.items.forEach(item => {
-                html += `<option value="${item.name}|${item.price}">${item.name} (${App.formatPrice(item.price)})</option>`;
+                html += `<option value="${this.escapeAttr(item.name)}|${item.price}">${this.escapeDisplay(item.name)} (${App.formatPrice(item.price)})</option>`;
             });
         });
 
@@ -416,7 +427,7 @@ const Admin = {
             const tab = tabs[name];
             html += `
                 <tr>
-                    <td>${name}</td>
+                    <td>${this.escapeDisplay(name)}</td>
                     <td>${tab.drinks.length}</td>
                     <td class="total">${App.formatPrice(tab.total)}</td>
                     <td class="${tab.paid ? 'paid' : 'unpaid'}">${tab.paid ? 'Betaald' : 'OPEN'}</td>
@@ -791,7 +802,7 @@ const Admin = {
 
             html += `
                 <div class="guest-list-item ${hasOrders ? 'has-orders' : ''}">
-                    <span class="guest-list-name">${name}</span>
+                    <span class="guest-list-name">${this.escapeDisplay(name)}</span>
                     ${hasOrders ? `<span class="guest-orders-badge">${tab.drinks.length} items</span>` : ''}
                     <button class="rename-guest-btn" onclick="Admin.renameGuestPrompt('${this.escapeHtml(name)}')" title="Naam wijzigen">&#9998;</button>
                     ${hasOrders ? '' : `<button class="remove-guest-btn" onclick="Admin.removeGuest('${this.escapeHtml(name)}')">&times;</button>`}
@@ -897,6 +908,35 @@ const Admin = {
         });
 
         container.innerHTML = html;
+    },
+
+    // ==========================================================================
+    // TOEGANGSCODES
+    // ==========================================================================
+
+    saveAdminPin() {
+        this._savePin('new-admin-pin', 'Beheer PIN', pin => Storage.setAdminPin(pin));
+    },
+
+    saveEntryPin() {
+        this._savePin('new-entry-pin', 'Toegangscode voor gasten', pin => Storage.setEntryPin(pin));
+    },
+
+    _savePin(inputId, label, save) {
+        const input = document.getElementById(inputId);
+        const pin = input.value.trim();
+
+        if (!/^\d{5}$/.test(pin)) {
+            alert('De code moet uit precies 5 cijfers bestaan.');
+            return;
+        }
+
+        const confirmed = confirm(`${label} wijzigen naar ${pin}?\n\nOnthoud deze code goed — zonder de beheer-PIN kun je niet meer bij het Beheer-scherm.`);
+        if (!confirmed) return;
+
+        save(pin);
+        input.value = '';
+        alert(`${label} gewijzigd. De nieuwe code geldt op alle apparaten.`);
     },
 
     // ==========================================================================
@@ -1056,7 +1096,7 @@ const Admin = {
         `;
 
         guestList.forEach(name => {
-            html += `<option value="${this.escapeHtml(name)}">${name}</option>`;
+            html += `<option value="${this.escapeAttr(name)}">${this.escapeDisplay(name)}</option>`;
         });
 
         html += `

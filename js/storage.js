@@ -227,7 +227,8 @@ const Storage = {
      */
     exportCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Gast,Totaal (EUR),Betaald,Betaalmethode,Betaald op,Aantal\n";
+        // BOM + semicolons so Dutch Excel opens the file correctly
+        let csv = "﻿Gast;Totaal (EUR);Betaald;Betaalmethode;Betaald op;Aantal\n";
 
         // Sort by name
         const sortedNames = Object.keys(tabs).sort();
@@ -242,7 +243,7 @@ const Storage = {
                 const paidAt = tab.paidAt
                     ? new Date(tab.paidAt).toLocaleString(APP_CONFIG.locale)
                     : '';
-                csv += `"${name}",${total},${paid},${method},"${paidAt}",${tab.drinks.length}\n`;
+                csv += `"${name}";${total};${paid};${method};"${paidAt}";${tab.drinks.length}\n`;
             }
         });
 
@@ -254,7 +255,7 @@ const Storage = {
      */
     exportDetailedCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Gast,Item,Prijs (EUR),Datum/Tijd\n";
+        let csv = "﻿Gast;Item;Prijs (EUR);Datum/Tijd\n";
 
         const sortedNames = Object.keys(tabs).sort();
 
@@ -263,7 +264,7 @@ const Storage = {
             tab.drinks.forEach(drink => {
                 const price = drink.price.toFixed(2).replace('.', ',');
                 const date = new Date(drink.timestamp).toLocaleString(APP_CONFIG.locale);
-                csv += `"${name}","${drink.name}",${price},"${date}"\n`;
+                csv += `"${name}";"${drink.name}";${price};"${date}"\n`;
             });
         });
 
@@ -570,6 +571,37 @@ const Storage = {
      */
     resetGuestList() {
         localStorage.removeItem(this._key('customGuests'));
+    },
+
+    // ==========================================================================
+    // PIN CODES (te wijzigen in Beheer; config levert de standaardwaarde)
+    // ==========================================================================
+
+    getAdminPin() {
+        return localStorage.getItem(this._key('adminPin')) || APP_CONFIG.adminPin;
+    },
+
+    getEntryPin() {
+        return localStorage.getItem(this._key('entryPin')) || APP_CONFIG.entryPin;
+    },
+
+    setAdminPin(pin) {
+        localStorage.setItem(this._key('adminPin'), pin);
+        this._syncPins();
+    },
+
+    setEntryPin(pin) {
+        localStorage.setItem(this._key('entryPin'), pin);
+        this._syncPins();
+    },
+
+    _syncPins() {
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.savePins({
+                admin: this.getAdminPin(),
+                entry: this.getEntryPin()
+            });
+        }
     },
 
     // ==========================================================================

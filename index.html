@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Camping du Lac - Honesty Bar</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -129,6 +129,22 @@
                 <h3>Gasten Overzicht</h3>
                 <div id="admin-guests-table" class="admin-table-container"></div>
 
+                <!-- PIN codes -->
+                <div class="admin-pins-section">
+                    <h3>Toegangscodes</h3>
+                    <p class="toggle-hint">Wijzig de codes (precies 5 cijfers). Let op: dit is een drempel, geen echte beveiliging.</p>
+                    <div class="pin-change-row">
+                        <label for="new-admin-pin">Beheer PIN:</label>
+                        <input type="password" id="new-admin-pin" class="pin-change-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="•••••">
+                        <button class="export-btn" onclick="Admin.saveAdminPin()">Opslaan</button>
+                    </div>
+                    <div class="pin-change-row">
+                        <label for="new-entry-pin">Toegangscode gasten:</label>
+                        <input type="password" id="new-entry-pin" class="pin-change-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="•••••">
+                        <button class="export-btn" onclick="Admin.saveEntryPin()">Opslaan</button>
+                    </div>
+                </div>
+
                 <div class="guest-management-section">
                     <h3>Gastenlijst Beheren</h3>
                     <div class="guest-management-actions">
@@ -216,10 +232,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <!-- App Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/firebase.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/config.js?v=2"></script>
+    <script src="js/firebase.js?v=2"></script>
+    <script src="js/storage.js?v=2"></script>
+    <script src="js/admin.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>

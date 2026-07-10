@@ -1946,3 +1946,40 @@ body {
     cursor: pointer;
     padding: 8px;
 }
+
+/* ==========================================================================
+   Toegangscodes wijzigen + permanente sync-stip
+   ========================================================================== */
+
+.pin-change-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.pin-change-row label {
+    min-width: 170px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.pin-change-input {
+    width: 110px;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 16px;
+    letter-spacing: 4px;
+    text-align: center;
+}
+
+.sync-status.minimized {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border-radius: 50%;
+    overflow: hidden;
+}
