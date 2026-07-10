@@ -346,7 +346,7 @@ body {
 
 .section-header {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
 }
 
 .section-header h2 {
@@ -367,19 +367,20 @@ body {
 
 .guest-buttons-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: var(--spacing-sm);
+    /* auto-fill: ~7-8 kolommen op een liggende tablet, schaalt vanzelf mee */
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--spacing-xs);
 }
 
 .guest-btn {
     background: var(--bg-card);
     border: 2px solid transparent;
     border-radius: var(--radius-md);
-    padding: var(--spacing-sm);
+    padding: 6px var(--spacing-xs);
     font-family: var(--font-main);
     cursor: pointer;
     transition: all 0.15s ease;
-    min-height: 60px;
+    min-height: 48px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -405,6 +406,7 @@ body {
     color: var(--color-text-dark);
     text-align: center;
     line-height: 1.2;
+    word-break: break-word;
 }
 
 .guest-icons-badge {
@@ -416,8 +418,8 @@ body {
 }
 
 .guest-icon {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     object-fit: contain;
 }
 
@@ -1590,10 +1592,6 @@ body {
    ========================================================================== */
 
 @media (max-width: 900px) {
-    .guest-buttons-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-
     .admin-summary {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1607,10 +1605,6 @@ body {
 
     .logo-camping, .logo-vibes {
         height: 40px;
-    }
-
-    .guest-buttons-grid {
-        grid-template-columns: repeat(3, 1fr);
     }
 
     .nav-btn {
