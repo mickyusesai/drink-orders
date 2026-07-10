@@ -226,6 +226,17 @@ const App = {
         const tabs = Storage.getAllTabs();
         const guestList = Storage.getGuestList();
 
+        if (guestList.length === 0) {
+            container.innerHTML = `
+                <div class="empty-guest-list">
+                    <div class="empty-tab-icon">📋</div>
+                    <p>Nog geen namen op de lijst.</p>
+                    <p class="section-hint">Voeg gasten toe via Beheer &rarr; Gastenlijst (of importeer een lijst).</p>
+                </div>
+            `;
+            return;
+        }
+
         guestList.forEach(name => {
             const btn = document.createElement('button');
             btn.className = 'guest-btn';

@@ -523,7 +523,8 @@ const Admin = {
      */
     startNewWeek() {
         const confirmed = confirm(
-            'Dit zal ALLE gasten tabs en betalingsgegevens PERMANENT VERWIJDEREN.\n\n' +
+            'Dit zal ALLE gasten tabs, betalingsgegevens EN de namenlijst PERMANENT VERWIJDEREN.\n\n' +
+            'De nieuwe week begint met een lege gastenlijst.\n' +
             'Er wordt automatisch een backup gemaakt voordat de gegevens worden gewist.\n\n' +
             'Weet je zeker dat je een nieuwe week wilt starten?'
         );
@@ -810,10 +811,14 @@ const Admin = {
             `;
         });
 
+        if (guestList.length === 0) {
+            html += '<p class="placeholder-text">De lijst is leeg. Voeg hierboven in het Beheer-scherm namen toe of importeer een lijst.</p>';
+        }
+
         html += `
                 </div>
                 <div class="manager-actions">
-                    <button class="export-btn danger" onclick="Admin.resetGuestListToDefault()">Reset naar Standaard</button>
+                    <button class="export-btn danger" onclick="Admin.clearGuestList()">Lijst Leegmaken</button>
                 </div>
             </div>
         `;
@@ -857,17 +862,22 @@ const Admin = {
     },
 
     /**
-     * Reset guest list to default from config.
+     * Empty the guest list. Guests with an open (unpaid) tab are kept so
+     * their bill never disappears from the grid.
      */
-    resetGuestListToDefault() {
-        const confirmed = confirm('Weet je zeker dat je de gastenlijst wilt resetten naar de standaardlijst? Bestaande bestellingen blijven behouden.');
-        if (confirmed) {
-            Storage.resetGuestList();
-            Storage.init();
-            App.renderGuestButtons();
-            this.showGuestListManager();
-            alert('Gastenlijst gereset naar standaard.');
-        }
+    clearGuestList() {
+        const confirmed = confirm('Weet je zeker dat je de hele gastenlijst wilt leegmaken?\n\nGasten met een open rekening blijven behouden.');
+        if (!confirmed) return;
+
+        const tabs = Storage.getAllTabs();
+        const keep = Storage.getGuestList().filter(name => {
+            const tab = tabs[name];
+            return tab && tab.drinks && tab.drinks.length > 0 && !tab.paid;
+        });
+        Storage.saveGuestList(keep);
+        Storage.init();
+        App.renderGuestButtons();
+        this.showGuestListManager();
     },
 
     // ==========================================================================

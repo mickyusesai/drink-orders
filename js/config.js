@@ -7,71 +7,11 @@
 // =============================================================================
 // GASTNAMEN
 // =============================================================================
-// Wijzig deze lijst aan het begin van elke nieuwe week.
-// Je kunt maximaal 50 gasten toevoegen. Voeg namen toe of verwijder ze indien nodig.
-// Namen verschijnen als knoppen in de onderstaande volgorde.
+// De gastenlijst wordt beheerd in het Beheer-scherm (namen toevoegen,
+// importeren of hernoemen). De app start leeg; ook na "Nieuwe Week" is de
+// lijst weer helemaal leeg.
 
-const GUEST_NAMES = [
-    // Rij 1 - Voorbeeldfamilies
-    "Van den Berg",
-    "Jansen Familie",
-    "De Vries",
-    "Bakker",
-    "Visser",
-    "Smit",
-    "Meijer",
-    "De Boer",
-    "Mulder",
-    "De Groot",
-
-    // Rij 2
-    "Bos Familie",
-    "Vos",
-    "Peters",
-    "Hendriks",
-    "Van Dijk",
-    "Van den Broek",
-    "De Jong",
-    "Janssen",
-    "Van Leeuwen",
-    "Koster",
-
-    // Rij 3
-    "Vermeer",
-    "Van der Meer",
-    "Dijkstra",
-    "Kuijpers",
-    "Kramer",
-    "Schouten",
-    "Van Beek",
-    "Willems",
-    "Dekker",
-    "De Wit",
-
-    // Rij 4
-    "Scholten",
-    "Van der Berg",
-    "Post",
-    "Jacobs",
-    "Van Es",
-    "Van der Veen",
-    "Groen",
-    "Huisman",
-    "Maas",
-    "Van der Linden",
-
-    // Rij 5 - Voeg meer namen toe indien nodig
-    "Plek 41",
-    "Plek 42",
-    "Plek 43",
-    "Plek 44",
-    "Plek 45",
-    "Plek 46",
-    "Plek 47",
-    "Plek 48",
-    "Plek 49",
-    "Plek 50"
-];
+const GUEST_NAMES = [];
 
 // =============================================================================
 // STANDAARD MENU

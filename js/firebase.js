@@ -197,6 +197,8 @@ const FirebaseSync = {
                 localStorage.removeItem(APP_CONFIG.storagePrefix + 'tabs');
                 // Offline orders from before the reset belong to the old week
                 localStorage.removeItem(APP_CONFIG.storagePrefix + 'pendingOps');
+                // A new week starts with an empty guest list on every device
+                localStorage.setItem(APP_CONFIG.storagePrefix + 'customGuests', '[]');
                 if (typeof Storage !== 'undefined') {
                     Storage.init();
                 }
@@ -227,11 +229,14 @@ const FirebaseSync = {
             }
         });
 
-        // Listen for guest list changes
+        // Listen for guest list changes. Firebase can't store an empty array
+        // (it becomes null), so an intentionally empty list is stored as the
+        // sentinel { _empty: true }.
         this.db.ref('customGuests').on('value', (snapshot) => {
             const cloudData = snapshot.val();
             if (cloudData) {
-                localStorage.setItem(APP_CONFIG.storagePrefix + 'customGuests', JSON.stringify(cloudData));
+                const guests = cloudData._empty ? [] : Object.values(cloudData);
+                localStorage.setItem(APP_CONFIG.storagePrefix + 'customGuests', JSON.stringify(guests));
                 if (typeof App !== 'undefined' && App.renderGuestButtons) {
                     App.renderGuestButtons();
                 }
@@ -269,6 +274,14 @@ const FirebaseSync = {
         if (!this.db || !this.isOnline) return;
 
         try {
+            // If a "Nieuwe Week" reset happened while this device was offline,
+            // its local data belongs to the old week — don't push it back to
+            // the (intentionally) empty cloud; the reset listener clears it.
+            const resetSnapshot = await this.db.ref('meta/resetAt').once('value');
+            const cloudResetAt = resetSnapshot.val() || 0;
+            const localResetAt = parseInt(localStorage.getItem(APP_CONFIG.storagePrefix + 'lastResetAt') || '0', 10);
+            if (cloudResetAt > localResetAt) return;
+
             // Check if cloud has any data
             const snapshot = await this.db.ref('tabs').once('value');
             const cloudTabs = snapshot.val();
@@ -286,7 +299,7 @@ const FirebaseSync = {
             const guestsSnapshot = await this.db.ref('customGuests').once('value');
             if (!guestsSnapshot.val()) {
                 const localGuests = JSON.parse(localStorage.getItem(APP_CONFIG.storagePrefix + 'customGuests') || 'null');
-                if (localGuests) {
+                if (localGuests && localGuests.length > 0) {
                     await this.db.ref('customGuests').set(localGuests);
                 }
             }
@@ -579,12 +592,13 @@ const FirebaseSync = {
     },
 
     /**
-     * Save custom guest list to Firebase.
+     * Save custom guest list to Firebase. An empty list is stored as a
+     * sentinel object because Firebase drops empty arrays.
      */
     saveGuestList(guests) {
         if (!this.db || !this.isOnline) return;
 
-        this.db.ref('customGuests').set(guests)
+        this.db.ref('customGuests').set(guests.length ? guests : { _empty: true })
             .catch(err => console.error('Save guests error:', err));
     },
 

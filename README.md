@@ -7,7 +7,7 @@ A touch-friendly web app (Dutch UI) for tracking drink orders at the Camping du 
 - **Touch-friendly interface** — large buttons for tablets, entry code gate for guests
 - **Ordering flow** — tap your name, tap a drink, immediate undo, "Bekijk totaal" shows your bill
 - **Editable menu** — categories (Bieren, Wijnen, Non-alcoholisch, Warme dranken, Snacks + toggleable Cocktails and Panini's) with per-item prices, all editable in the admin dashboard
-- **Guest management** — add, rename, or remove guests; paste a list of names to import (add or replace)
+- **Guest management** — add, rename, or remove guests; paste a list of names to import (add or replace). The list starts empty and is emptied again by "Nieuwe Week"
 - **Payments** — mark tabs paid as *Contant* or *PIN*; totals split by method in the summary and CSV exports
 - **Multi-device sync** — orders are written per guest with conflict-safe transactions to Firebase Realtime Database; offline orders are queued and replayed on reconnect
 - **Data safety** — automatic daily backup snapshots (last 7, local + cloud) restorable from the admin dashboard; an empty cloud state can never wipe local data; "Nieuwe Week" uses an explicit reset signal
@@ -26,13 +26,13 @@ Deployment: Railway (`railway.json`), served with the `serve` package.
 
 ## Weekly routine
 
-1. Start of week: import/adjust the guest list in Beheer (paste names, one per line)
+1. Start of week: the guest list is empty — import names in Beheer (paste, one per line) or add them one by one
 2. During the week: everything syncs automatically; daily backups are kept automatically
-3. End of week: settle tabs (Contant/PIN), export or print, then **Nieuwe Week** (downloads a backup first and clears all devices)
+3. End of week: settle tabs (Contant/PIN), export or print, then **Nieuwe Week** (downloads a backup first, then clears the tabs *and* the guest list on all devices)
 
 ## Configuration
 
-`js/config.js` contains the *defaults*: guest names (`GUEST_NAMES`), the menu seed (`DEFAULT_MENU`), and app settings (`APP_CONFIG`, including the default PIN codes). Once you edit the menu or PINs in the admin dashboard, those saved values take precedence and sync to all devices — you normally never need to edit this file again.
+`js/config.js` contains the *defaults*: the menu seed (`DEFAULT_MENU`) and app settings (`APP_CONFIG`, including the default PIN codes); the guest list is managed entirely in the app. Once you edit the menu or PINs in the admin dashboard, those saved values take precedence and sync to all devices — you normally never need to edit this file again.
 
 The Firebase project (`camping-honesty-bar`) is configured in `js/firebase.js`. Note that the database rules live in the Firebase console, not in this repo; ideally restrict them, since the config in the shipped JS is public (the in-app daily `backups/` node is the safety net either way).
 
