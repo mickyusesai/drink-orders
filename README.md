@@ -1,279 +1,75 @@
-# Campsite Honesty Bar
+# Camping du Lac — Honesty Bar
 
-A simple, touch-friendly web app for tracking drink orders at a campsite honesty bar.
+A touch-friendly web app (Dutch UI) for tracking drink orders at the Camping du Lac honesty bar. Runs 24/7 on a tablet; data syncs in real time between devices via Firebase.
 
 ## Features
 
-- **Touch-friendly interface** - Large buttons for easy tapping on tablets and phones
-- **Guest management** - 50 guest slots per week with customizable names
-- **Drink categories** - Organized by price with easy configuration
-- **Running tabs** - Automatic price tracking per guest
-- **Immediate undo** - Guests can undo a drink only immediately after adding
-- **Tab viewing** - Guests can see their current tab at any time
-- **Organizer view** - Overview of all tabs, mark as paid, export data
-- **Data persistence** - Uses browser localStorage (survives page refresh)
-- **Responsive design** - Works on tablets, phones, and laptops
+- **Touch-friendly interface** — large buttons for tablets, entry code gate for guests
+- **Ordering flow** — tap your name, tap a drink, immediate undo, "Bekijk totaal" shows your bill
+- **Editable menu** — categories (Bieren, Wijnen, Non-alcoholisch, Warme dranken, Snacks + toggleable Cocktails and Panini's) with per-item prices, all editable in the admin dashboard
+- **Guest management** — add, rename, or remove guests; paste a list of names to import (add or replace)
+- **Payments** — mark tabs paid as *Contant* or *PIN*; totals split by method in the summary and CSV exports
+- **Multi-device sync** — orders are written per guest with conflict-safe transactions to Firebase Realtime Database; offline orders are queued and replayed on reconnect
+- **Data safety** — automatic daily backup snapshots (last 7, local + cloud) restorable from the admin dashboard; an empty cloud state can never wipe local data; "Nieuwe Week" uses an explicit reset signal
+- **Kiosk-ready** — Screen Wake Lock keeps the tablet awake (requires HTTPS); a small dot bottom-right always shows the sync status (green = online, red = offline)
+- **Admin dashboard** (PIN-protected) — summary, per-guest details, add/remove items, Receptie items, print view, CSV exports (Dutch Excel format), backup/restore, changeable PIN codes
 
-## Quick Start
+## Running
 
-### Option 1: Open directly in browser
-
-Simply open `index.html` in a modern web browser:
+No build step — static files only.
 
 ```bash
-# On macOS
-open index.html
-
-# On Linux
-xdg-open index.html
-
-# Or just double-click index.html in your file manager
+npx serve -s . -l 3000      # same command the Railway deployment uses
 ```
 
-### Option 2: Use a simple web server (recommended)
+Deployment: Railway (`railway.json`), served with the `serve` package.
 
-For the best experience, use a simple web server:
+## Weekly routine
 
-```bash
-# Using Python 3
-cd drink-orders
-python3 -m http.server 8000
-
-# Or using Node.js (if installed)
-npx serve .
-
-# Or using PHP (if installed)
-php -S localhost:8000
-```
-
-Then open `http://localhost:8000` in your browser.
-
-### Option 3: Use Node.js server (for additional robustness)
-
-If you want a more robust setup with optional JSON file backup, you can create a simple Node.js server. See the "Optional Node.js Server" section below.
-
-## How to Use
-
-### For Guests
-
-1. **Add Drinks**
-   - Tap your name from the guest list
-   - Tap the drink you're taking
-   - A confirmation message appears with your new total
-   - If you made a mistake, tap "Undo" immediately
-
-2. **View Your Tab**
-   - Tap "View Tab" in the navigation
-   - Select your name from the dropdown
-   - See all drinks and your total
-
-### For Organisers
-
-1. **Access Admin View**
-   - Tap "Organiser" in the navigation
-
-2. **View Summary**
-   - See total revenue, paid/unpaid amounts
-   - View all guests with tabs
-
-3. **Mark Guests as Paid**
-   - Click "Mark Paid" next to a guest
-   - Once paid, no more drinks can be added
-
-4. **Export Data**
-   - **Print Overview**: Opens a printable page
-   - **Copy CSV**: Copies summary to clipboard
-   - **Download CSV**: Downloads summary file
-   - **Detailed CSV**: Downloads all individual drink entries
-   - **Backup Data**: Downloads full JSON backup
-
-5. **Start New Week**
-   - Click "New Week" to clear all data
-   - Make sure to export/print first!
+1. Start of week: import/adjust the guest list in Beheer (paste names, one per line)
+2. During the week: everything syncs automatically; daily backups are kept automatically
+3. End of week: settle tabs (Contant/PIN), export or print, then **Nieuwe Week** (downloads a backup first and clears all devices)
 
 ## Configuration
 
-### Changing Guest Names
+`js/config.js` contains the *defaults*: guest names (`GUEST_NAMES`), the menu seed (`DEFAULT_MENU`), and app settings (`APP_CONFIG`, including the default PIN codes). Once you edit the menu or PINs in the admin dashboard, those saved values take precedence and sync to all devices — you normally never need to edit this file again.
 
-Edit `js/config.js` and modify the `GUEST_NAMES` array:
+The Firebase project (`camping-honesty-bar`) is configured in `js/firebase.js`. Note that the database rules live in the Firebase console, not in this repo; ideally restrict them, since the config in the shipped JS is public (the in-app daily `backups/` node is the safety net either way).
 
-```javascript
-const GUEST_NAMES = [
-    "Family Smith",
-    "The Johnsons",
-    "Tent 3",
-    // ... add up to 50 names
-];
-```
+## Data storage
 
-### Changing Drink Categories and Prices
+- **localStorage** (prefix `campingDuLac_`) is the working copy on each device: tabs, guest list, menu, category toggles, PIN overrides, pending offline writes, and auto-backup snapshots.
+- **Firebase Realtime Database** is the shared source of truth between devices: `tabs/<guest>` (per-guest, transactional), `customGuests`, `menu`, `categoryToggles`, `settings/pins`, `meta/resetAt`, `backups/<date>`.
+- **Restore**: Beheer → Herstellen shows the automatic snapshots (with date, guest count, and total) plus a file upload for downloaded JSON backups.
 
-Edit `js/config.js` and modify the `DRINK_CATEGORIES` array:
-
-```javascript
-const DRINK_CATEGORIES = [
-    {
-        name: "Category Name",
-        price: 2.50,  // Price in euros
-        color: "#FF9800",  // Button color
-        items: [
-            "Drink 1",
-            "Drink 2",
-            // ...
-        ]
-    },
-    // ... more categories
-];
-```
-
-### Other Settings
-
-In `js/config.js`, you can also modify:
-
-```javascript
-const APP_CONFIG = {
-    undoTimeoutMs: 8000,     // How long undo button shows (milliseconds)
-    currency: "€",           // Currency symbol
-    locale: "nl-NL",         // Number/date formatting locale
-    appTitle: "Campsite Honesty Bar",  // App title
-    storagePrefix: "campsiteBar_"      // localStorage key prefix
-};
-```
-
-## Data Storage
-
-By default, all data is stored in the browser's localStorage. This means:
-
-- Data survives page refreshes and browser restarts
-- Data is tied to the specific browser on the specific device
-- Clearing browser data will erase the tabs
-
-### Backing Up Data
-
-1. Go to Organiser view
-2. Click "Backup Data" to download a JSON file
-3. Store this file safely
-
-### Restoring Data
-
-If you need to restore from a backup, open the browser console (F12) and run:
-
-```javascript
-Storage.restore('{"paste your JSON backup here"}');
-location.reload();
-```
-
-## Optional Node.js Server
-
-For a more robust setup with server-side storage, create a `server.js` file:
-
-```javascript
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-
-const PORT = 3000;
-const DATA_FILE = 'bar-data.json';
-
-const mimeTypes = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'text/javascript',
-    '.json': 'application/json'
-};
-
-const server = http.createServer((req, res) => {
-    // Handle API endpoints
-    if (req.url === '/api/data' && req.method === 'GET') {
-        if (fs.existsSync(DATA_FILE)) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(fs.readFileSync(DATA_FILE));
-        } else {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end('{}');
-        }
-        return;
-    }
-
-    if (req.url === '/api/data' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', () => {
-            fs.writeFileSync(DATA_FILE, body);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end('{"success": true}');
-        });
-        return;
-    }
-
-    // Serve static files
-    let filePath = req.url === '/' ? '/index.html' : req.url;
-    filePath = path.join(__dirname, filePath);
-
-    const ext = path.extname(filePath);
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (err, content) => {
-        if (err) {
-            res.writeHead(404);
-            res.end('Not found');
-        } else {
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(content);
-        }
-    });
-});
-
-server.listen(PORT, () => {
-    console.log(`Honesty Bar running at http://localhost:${PORT}`);
-});
-```
-
-Then run with: `node server.js`
-
-## Project Structure
+## Project structure
 
 ```
 drink-orders/
-├── index.html          # Main HTML file
-├── css/
-│   └── styles.css      # All styles
+├── index.html          # App shell: views + modals
+├── css/styles.css      # All styles
 ├── js/
-│   ├── config.js       # Guest names & drink prices (EDIT THIS)
-│   ├── storage.js      # LocalStorage handling
-│   ├── app.js          # Main application logic
-│   └── admin.js        # Organiser/admin functions
-└── README.md           # This file
+│   ├── config.js       # Defaults: guest names, menu seed, app settings
+│   ├── firebase.js     # Realtime sync, offline queue, cloud backups
+│   ├── storage.js      # localStorage persistence + business logic
+│   ├── admin.js        # Admin dashboard
+│   └── app.js          # Ordering UI, PIN gates, wake lock
+├── images/             # Item icons + logos
+├── package.json        # `serve` for production
+└── railway.json        # Railway deployment config
 ```
 
-## Browser Support
+## Tablet tips
 
-Works in all modern browsers:
-- Chrome / Chromium
-- Firefox
-- Safari
-- Edge
-
-## Tips for Campsite Use
-
-1. **Set up a dedicated device** - Use a tablet mounted at the bar
-2. **Enable kiosk mode** - Most browsers have a fullscreen/kiosk mode
-3. **Disable sleep** - Keep the screen always on
-4. **Weekly routine**:
-   - Start of week: Update guest names in `config.js`
-   - End of week: Export data, mark everyone as paid, click "New Week"
+1. Use HTTPS (Railway does) — the Wake Lock API doesn't work over plain HTTP
+2. Also set the tablet's own display sleep to "never" and disable auto-updates/reboots as belt-and-braces
+3. After deploying an update, the page picks it up on the next reload; the `?v=` query on the asset tags is bumped per release so the tablet never runs stale files
 
 ## Troubleshooting
 
-**Data disappeared after update?**
-- Data is stored in localStorage. If you changed the `storagePrefix` in config, old data won't be found.
-
-**App looks broken?**
-- Hard refresh the page (Ctrl+Shift+R or Cmd+Shift+R)
-- Clear browser cache and reload
-
-**Need to reset everything?**
-- Open browser console (F12) and run: `localStorage.clear(); location.reload();`
+- **App looks broken after an update** — hard refresh (Ctrl+Shift+R), or close and reopen the browser tab
+- **Red dot bottom-right** — the tablet is offline; orders still work locally and sync automatically when the connection returns
+- **Forgot the admin PIN** — on the tablet, open the browser console (F12) and run `localStorage.removeItem('campingDuLac_adminPin')` to fall back to the default from `config.js` (this device only, until it syncs a new one)
 
 ## License
 

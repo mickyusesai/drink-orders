@@ -21,6 +21,10 @@ const Admin = {
         const summary = Storage.getSummary();
         const container = document.getElementById('admin-summary');
 
+        const paidSplit = (summary.totalPaidCash > 0 || summary.totalPaidCard > 0)
+            ? `<div class="summary-sub">contant ${App.formatPrice(summary.totalPaidCash)} · PIN ${App.formatPrice(summary.totalPaidCard)}</div>`
+            : '';
+
         container.innerHTML = `
             <div class="summary-card total">
                 <div class="summary-value">${App.formatPrice(summary.totalRevenue)}</div>
@@ -29,6 +33,7 @@ const Admin = {
             <div class="summary-card paid">
                 <div class="summary-value">${App.formatPrice(summary.totalPaid)}</div>
                 <div class="summary-label">Betaald (${summary.paidCount})</div>
+                ${paidSplit}
             </div>
             <div class="summary-card unpaid">
                 <div class="summary-value">${App.formatPrice(summary.totalUnpaid)}</div>
@@ -39,6 +44,15 @@ const Admin = {
                 <div class="summary-label">Gasten met Tab</div>
             </div>
         `;
+    },
+
+    /**
+     * Human label for a payment method.
+     */
+    paymentMethodLabel(method) {
+        if (method === 'cash') return 'Contant';
+        if (method === 'card') return 'PIN';
+        return null;
     },
 
     /**
@@ -80,11 +94,12 @@ const Admin = {
         sortedGuests.forEach(name => {
             const tab = tabs[name];
             const statusClass = tab.paid ? 'status-paid' : 'status-unpaid';
-            const statusText = tab.paid ? 'Betaald' : 'Open';
+            const methodLabel = this.paymentMethodLabel(tab.paymentMethod);
+            const statusText = tab.paid ? (methodLabel ? `Betaald (${methodLabel})` : 'Betaald') : 'Open';
 
             html += `
                 <tr class="${tab.paid ? 'row-paid' : ''}">
-                    <td class="guest-name-cell">${name}</td>
+                    <td class="guest-name-cell">${this.escapeDisplay(name)}</td>
                     <td>${tab.drinks.length}</td>
                     <td class="total-cell">${App.formatPrice(tab.total)}</td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
@@ -106,21 +121,91 @@ const Admin = {
     },
 
     /**
-     * Escape HTML special characters.
+     * Escape a value for use inside an onclick="...('...')" handler:
+     * HTML-escapes, protects the double-quoted attribute, and
+     * backslash-escapes single quotes for the JS string.
      */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
-        return div.innerHTML.replace(/'/g, "\\'");
+        return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, "\\'");
     },
 
     /**
-     * Toggle paid status for a guest.
+     * Escape text for plain HTML display.
      */
-    togglePaid(guestName, paid) {
-        Storage.markAsPaid(guestName, paid);
+    escapeDisplay(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * Toggle paid status for a guest. Marking as paid first asks for the
+     * payment method (cash or card).
+     */
+    togglePaid(guestName, paid, fromDetails = false) {
+        if (paid) {
+            this.showPaymentMethodModal(guestName, fromDetails);
+            return;
+        }
+        Storage.markAsPaid(guestName, false);
         this.renderAdminView();
         App.renderGuestButtons();
+        if (fromDetails) {
+            this.showGuestDetails(guestName);
+        }
+    },
+
+    /**
+     * Ask how the guest paid before marking the tab as paid.
+     */
+    showPaymentMethodModal(guestName, fromDetails = false) {
+        const tab = Storage.getGuestTab(guestName);
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+        const back = fromDetails ? 'true' : 'false';
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Betaling</h2>
+                <button class="close-btn" onclick="Admin.cancelPayment('${this.escapeHtml(guestName)}', ${back})">&times;</button>
+            </div>
+            <div class="modal-body payment-modal">
+                <p class="payment-question">Hoe heeft <strong>${this.escapeDisplay(guestName)}</strong> betaald?</p>
+                <div class="payment-amount">${App.formatPrice(tab.total)}</div>
+                <div class="payment-method-buttons">
+                    <button class="payment-method-btn cash" onclick="Admin.confirmPayment('${this.escapeHtml(guestName)}', 'cash', ${back})">
+                        💶 Contant
+                    </button>
+                    <button class="payment-method-btn card" onclick="Admin.confirmPayment('${this.escapeHtml(guestName)}', 'card', ${back})">
+                        💳 PIN
+                    </button>
+                </div>
+                <button class="payment-cancel-btn" onclick="Admin.cancelPayment('${this.escapeHtml(guestName)}', ${back})">Annuleren</button>
+            </div>
+        `;
+
+        modal.classList.add('show');
+    },
+
+    confirmPayment(guestName, method, fromDetails) {
+        Storage.markAsPaid(guestName, true, method);
+        this.renderAdminView();
+        App.renderGuestButtons();
+        if (fromDetails) {
+            this.showGuestDetails(guestName);
+        } else {
+            this.closeModal();
+        }
+    },
+
+    cancelPayment(guestName, fromDetails) {
+        if (fromDetails) {
+            this.showGuestDetails(guestName);
+        } else {
+            this.closeModal();
+        }
     },
 
     /**
@@ -131,13 +216,26 @@ const Admin = {
         const modal = document.getElementById('details-modal');
         const content = document.getElementById('details-content');
 
+        let paidInfo = '';
+        if (tab.paid) {
+            const methodLabel = this.paymentMethodLabel(tab.paymentMethod);
+            const when = tab.paidAt
+                ? new Date(tab.paidAt).toLocaleString(APP_CONFIG.locale, {
+                    weekday: 'short', day: 'numeric', month: 'short',
+                    hour: '2-digit', minute: '2-digit'
+                })
+                : null;
+            paidInfo = `<p class="paid-info">Betaald${methodLabel ? ` met ${methodLabel.toLowerCase()}` : ''}${when ? ` op ${when}` : ''}</p>`;
+        }
+
         let html = `
             <div class="modal-header">
-                <h2>${guestName}</h2>
+                <h2>${this.escapeDisplay(guestName)}</h2>
                 ${tab.paid ? '<span class="paid-badge large">BETAALD</span>' : ''}
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
+                ${paidInfo}
         `;
 
         if (tab.drinks.length === 0) {
@@ -155,7 +253,7 @@ const Admin = {
                 });
                 html += `
                     <tr>
-                        <td>${drink.name}</td>
+                        <td>${this.escapeDisplay(drink.name)}</td>
                         <td>${App.formatPrice(drink.price)}</td>
                         <td>${time}</td>
                         <td>
@@ -177,12 +275,9 @@ const Admin = {
                         <option value="">-- Kies drankje --</option>
         `;
 
-        DRINK_CATEGORIES.forEach(category => {
+        Storage.getMenu().forEach(category => {
             category.items.forEach(item => {
-                // Handle both string items (fixed price) and object items (individual price)
-                const itemName = typeof item === 'string' ? item : item.name;
-                const itemPrice = typeof item === 'string' ? category.price : item.price;
-                html += `<option value="${itemName}|${itemPrice}">${itemName} (${App.formatPrice(itemPrice)})</option>`;
+                html += `<option value="${this.escapeAttr(item.name)}|${item.price}">${this.escapeDisplay(item.name)} (${App.formatPrice(item.price)})</option>`;
             });
         });
 
@@ -198,8 +293,8 @@ const Admin = {
             <div class="modal-footer">
                 <div class="modal-total">Totaal: <strong>${App.formatPrice(tab.total)}</strong></div>
                 ${tab.paid
-                    ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', false); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Markeer als Open</button>`
-                    : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', true); Admin.showGuestDetails('${this.escapeHtml(guestName)}');">Markeer als Betaald</button>`
+                    ? `<button class="action-btn unpaid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', false, true)">Markeer als Open</button>`
+                    : `<button class="action-btn paid-btn" onclick="Admin.togglePaid('${this.escapeHtml(guestName)}', true, true)">Markeer als Betaald</button>`
                 }
             </div>
         `;
@@ -332,7 +427,7 @@ const Admin = {
             const tab = tabs[name];
             html += `
                 <tr>
-                    <td>${name}</td>
+                    <td>${this.escapeDisplay(name)}</td>
                     <td>${tab.drinks.length}</td>
                     <td class="total">${App.formatPrice(tab.total)}</td>
                     <td class="${tab.paid ? 'paid' : 'unpaid'}">${tab.paid ? 'Betaald' : 'OPEN'}</td>
@@ -444,6 +539,7 @@ const Admin = {
                 const timestamp = new Date().toISOString().slice(0, 10);
                 const json = Storage.backup();
                 this.downloadFile(json, `honesty-bar-backup-${timestamp}.json`, 'application/json');
+                Storage.snapshotBackup(`${timestamp}-weekafsluiting`);
 
                 // Clear and reinitialize
                 Storage.clearAll();
@@ -461,6 +557,18 @@ const Admin = {
     showRestoreDialog() {
         const modal = document.getElementById('details-modal');
         const content = document.getElementById('details-content');
+        const autoBackups = Storage.listAutoBackups();
+
+        let autoBackupsHtml = '<p class="placeholder-text">Nog geen automatische backups.</p>';
+        if (autoBackups.length > 0) {
+            autoBackupsHtml = autoBackups.map(backup => `
+                <div class="auto-backup-item">
+                    <span class="auto-backup-label">${backup.label}</span>
+                    <span class="auto-backup-info">${backup.guestCount} gasten · ${App.formatPrice(backup.total)}</span>
+                    <button class="action-btn details-btn" onclick="Admin.restoreAutoBackup('${backup.key}')">Herstel</button>
+                </div>
+            `).join('');
+        }
 
         content.innerHTML = `
             <div class="modal-header">
@@ -469,6 +577,10 @@ const Admin = {
             </div>
             <div class="modal-body">
                 <p class="restore-warning">⚠️ Let op: Dit zal alle huidige gegevens overschrijven!</p>
+                <h4>Automatische backups</h4>
+                <p class="toggle-hint">De app bewaart automatisch een dagelijkse kopie (laatste 7).</p>
+                <div class="auto-backup-list">${autoBackupsHtml}</div>
+                <h4>Backup bestand</h4>
                 <div class="restore-upload">
                     <label for="backup-file" class="upload-label">Selecteer backup bestand:</label>
                     <input type="file" id="backup-file" accept=".json" class="file-input" onchange="Admin.handleBackupFile(event)">
@@ -478,6 +590,29 @@ const Admin = {
         `;
 
         modal.classList.add('show');
+    },
+
+    /**
+     * Restore one of the automatic backup snapshots.
+     */
+    restoreAutoBackup(storageKey) {
+        const json = localStorage.getItem(storageKey);
+        if (!json) {
+            alert('Backup niet gevonden.');
+            return;
+        }
+
+        const confirmed = confirm('Weet je zeker dat je deze automatische backup wilt herstellen? Alle huidige gegevens worden overschreven.');
+        if (!confirmed) return;
+
+        if (Storage.restore(json)) {
+            this.closeModal();
+            this.renderAdminView();
+            App.renderGuestButtons();
+            alert('Backup succesvol hersteld!');
+        } else {
+            alert('Fout bij het herstellen van de backup.');
+        }
     },
 
     /**
@@ -571,35 +706,75 @@ const Admin = {
     },
 
     /**
-     * Import guests from CSV file.
+     * Show the paste-to-import modal for guest names.
      */
-    importGuestsCSV(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    showGuestImportModal() {
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
 
-        const confirmed = confirm(
-            'Dit zal de huidige gastenlijst VERVANGEN met de namen uit het CSV bestand.\n\n' +
-            'Bestaande bestellingen blijven behouden.\n\n' +
-            'Doorgaan?'
-        );
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Namenlijst Importeren</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="manager-hint">Plak hieronder een lijst met namen — één naam per regel.</p>
+                <textarea id="guest-import-text" class="guest-import-textarea" placeholder="Familie Jansen&#10;De Vries&#10;Plek 12&#10;..."></textarea>
+                <div class="import-mode-options">
+                    <label class="import-mode-option">
+                        <input type="radio" name="import-mode" value="add" checked>
+                        <span><strong>Toevoegen</strong> — namen worden aan de huidige lijst toegevoegd (dubbele worden overgeslagen)</span>
+                    </label>
+                    <label class="import-mode-option">
+                        <input type="radio" name="import-mode" value="replace">
+                        <span><strong>Vervangen</strong> — de geplakte lijst wordt de nieuwe lijst (gasten met een open rekening blijven staan)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn paid-btn" onclick="Admin.confirmGuestImport()">Importeren</button>
+            </div>
+        `;
 
-        if (!confirmed) {
-            event.target.value = '';
+        modal.classList.add('show');
+        setTimeout(() => document.getElementById('guest-import-text').focus(), 100);
+    },
+
+    /**
+     * Run the guest import with the chosen mode.
+     */
+    confirmGuestImport() {
+        const text = document.getElementById('guest-import-text').value;
+        const mode = document.querySelector('input[name="import-mode"]:checked').value;
+
+        if (!text.trim()) {
+            alert('Plak eerst een lijst met namen.');
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const count = Storage.importGuestsFromCSV(e.target.result);
-            if (count > 0) {
-                App.renderGuestButtons();
-                alert(`${count} gasten geïmporteerd uit CSV.`);
-            } else {
-                alert('Geen geldige namen gevonden in het bestand.');
-            }
-        };
-        reader.readAsText(file);
-        event.target.value = '';
+        if (mode === 'replace') {
+            const confirmed = confirm('Weet je zeker dat je de huidige gastenlijst wilt vervangen?\n\nGasten met een open rekening blijven behouden.');
+            if (!confirmed) return;
+        }
+
+        const result = Storage.importGuests(text, mode);
+
+        if (mode === 'add' && result.added === 0) {
+            alert(result.skipped > 0
+                ? `Geen nieuwe namen toegevoegd (${result.skipped} stonden al in de lijst).`
+                : 'Geen geldige namen gevonden.');
+            return;
+        }
+
+        this.closeModal();
+        App.renderGuestButtons();
+
+        if (mode === 'replace') {
+            alert(`Gastenlijst vervangen: ${result.total} namen op de lijst.`);
+        } else {
+            alert(`${result.added} namen toegevoegd` +
+                (result.skipped > 0 ? ` (${result.skipped} overgeslagen omdat ze al bestonden).` : '.'));
+        }
     },
 
     /**
@@ -617,7 +792,7 @@ const Admin = {
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
             <div class="modal-body guest-list-manager">
-                <p class="manager-hint">Klik op de X om een gast te verwijderen. Gasten met bestellingen kunnen niet worden verwijderd.</p>
+                <p class="manager-hint">Wijzig een naam met ✎ of verwijder een gast met de X. Gasten met bestellingen kunnen niet worden verwijderd (wel hernoemd — bestellingen verhuizen mee).</p>
                 <div class="guest-list-items">
         `;
 
@@ -627,11 +802,10 @@ const Admin = {
 
             html += `
                 <div class="guest-list-item ${hasOrders ? 'has-orders' : ''}">
-                    <span class="guest-list-name">${name}</span>
-                    ${hasOrders
-                        ? `<span class="guest-orders-badge">${tab.drinks.length} items</span>`
-                        : `<button class="remove-guest-btn" onclick="Admin.removeGuest('${this.escapeHtml(name)}')">&times;</button>`
-                    }
+                    <span class="guest-list-name">${this.escapeDisplay(name)}</span>
+                    ${hasOrders ? `<span class="guest-orders-badge">${tab.drinks.length} items</span>` : ''}
+                    <button class="rename-guest-btn" onclick="Admin.renameGuestPrompt('${this.escapeHtml(name)}')" title="Naam wijzigen">&#9998;</button>
+                    ${hasOrders ? '' : `<button class="remove-guest-btn" onclick="Admin.removeGuest('${this.escapeHtml(name)}')">&times;</button>`}
                 </div>
             `;
         });
@@ -646,6 +820,27 @@ const Admin = {
 
         content.innerHTML = html;
         modal.classList.add('show');
+    },
+
+    /**
+     * Ask for a new name and rename the guest (orders move along).
+     */
+    renameGuestPrompt(oldName) {
+        const newName = prompt(`Nieuwe naam voor "${oldName}":`, oldName);
+        if (newName === null) return;
+
+        const result = Storage.renameGuest(oldName, newName);
+        if (result.success) {
+            App.renderGuestButtons();
+            this.renderAdminView();
+            this.showGuestListManager(); // Refresh the modal
+        } else if (result.reason === 'duplicate') {
+            alert(`"${newName.trim()}" staat al in de lijst.`);
+        } else if (result.reason === 'empty') {
+            alert('Voer een geldige naam in.');
+        } else {
+            alert('Naam wijzigen is niet gelukt.');
+        }
     },
 
     /**
@@ -698,7 +893,7 @@ const Admin = {
 
         let html = '';
 
-        DRINK_CATEGORIES.forEach(category => {
+        Storage.getMenu().forEach(category => {
             if (category.toggleKey) {
                 const isEnabled = Storage.isCategoryEnabled(category.toggleKey);
                 html += `
@@ -713,6 +908,167 @@ const Admin = {
         });
 
         container.innerHTML = html;
+    },
+
+    // ==========================================================================
+    // TOEGANGSCODES
+    // ==========================================================================
+
+    saveAdminPin() {
+        this._savePin('new-admin-pin', 'Beheer PIN', pin => Storage.setAdminPin(pin));
+    },
+
+    saveEntryPin() {
+        this._savePin('new-entry-pin', 'Toegangscode voor gasten', pin => Storage.setEntryPin(pin));
+    },
+
+    _savePin(inputId, label, save) {
+        const input = document.getElementById(inputId);
+        const pin = input.value.trim();
+
+        if (!/^\d{5}$/.test(pin)) {
+            alert('De code moet uit precies 5 cijfers bestaan.');
+            return;
+        }
+
+        const confirmed = confirm(`${label} wijzigen naar ${pin}?\n\nOnthoud deze code goed — zonder de beheer-PIN kun je niet meer bij het Beheer-scherm.`);
+        if (!confirmed) return;
+
+        save(pin);
+        input.value = '';
+        alert(`${label} gewijzigd. De nieuwe code geldt op alle apparaten.`);
+    },
+
+    // ==========================================================================
+    // MENU EDITOR
+    // ==========================================================================
+
+    /**
+     * Escape text for use inside an HTML attribute value.
+     */
+    escapeAttr(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    },
+
+    /**
+     * Show the menu editor modal.
+     */
+    showMenuEditor() {
+        this._editingMenu = Storage.getMenu();
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+
+        let html = `
+            <div class="modal-header">
+                <h2>Menu Bewerken</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body menu-editor">
+                <p class="manager-hint">Wijzig namen en prijzen, of verwijder items met de X. Verwijderde items blijven gewoon op bestaande rekeningen staan.</p>
+        `;
+
+        this._editingMenu.forEach(category => {
+            html += `
+                <div class="menu-editor-category" data-category-id="${this.escapeAttr(category.id)}">
+                    <div class="menu-editor-header" style="background-color: ${this.escapeAttr(category.color)}">
+                        ${category.name}${category.toggleKey ? ' <span class="menu-toggle-note">(aan/uit te zetten)</span>' : ''}
+                    </div>
+                    <div class="menu-editor-items">
+                        ${category.items.map(item => this._menuEditorRowHtml(item.name, item.price)).join('')}
+                    </div>
+                    <button class="menu-add-item-btn" onclick="Admin.addMenuEditorRow(this)">+ Item toevoegen</button>
+                </div>
+            `;
+        });
+
+        html += `
+            </div>
+            <div class="modal-footer menu-editor-footer">
+                <button class="export-btn danger" onclick="Admin.resetMenuToDefault()">Reset naar standaard</button>
+                <button class="action-btn paid-btn" onclick="Admin.saveMenuFromEditor()">Opslaan</button>
+            </div>
+        `;
+
+        content.innerHTML = html;
+        modal.classList.add('show');
+    },
+
+    _menuEditorRowHtml(name = '', price = '') {
+        return `
+            <div class="menu-item-row">
+                <input type="text" class="menu-item-name" value="${this.escapeAttr(name)}" placeholder="Naam...">
+                <input type="number" class="menu-item-price" value="${price}" step="0.05" min="0" inputmode="decimal" placeholder="0.00">
+                <button class="remove-guest-btn" onclick="this.closest('.menu-item-row').remove()">&times;</button>
+            </div>
+        `;
+    },
+
+    /**
+     * Add an empty item row to a category in the editor.
+     */
+    addMenuEditorRow(button) {
+        const itemsDiv = button.closest('.menu-editor-category').querySelector('.menu-editor-items');
+        itemsDiv.insertAdjacentHTML('beforeend', this._menuEditorRowHtml());
+        const newRow = itemsDiv.lastElementChild;
+        newRow.querySelector('.menu-item-name').focus();
+    },
+
+    /**
+     * Read the editor form, validate, and save the menu.
+     */
+    saveMenuFromEditor() {
+        if (!this._editingMenu) return;
+
+        const newMenu = [];
+        for (const category of this._editingMenu) {
+            const container = document.querySelector(`.menu-editor-category[data-category-id="${category.id}"]`);
+            if (!container) continue;
+
+            const items = [];
+            for (const row of container.querySelectorAll('.menu-item-row')) {
+                const name = row.querySelector('.menu-item-name').value.trim();
+                const priceValue = row.querySelector('.menu-item-price').value.replace(',', '.');
+                const price = parseFloat(priceValue);
+
+                if (!name && priceValue.trim() === '') {
+                    continue; // Empty leftover row
+                }
+                if (!name) {
+                    alert(`Er is een item zonder naam in "${category.name}".`);
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    alert(`Ongeldige prijs voor "${name}" in "${category.name}".`);
+                    return;
+                }
+                items.push({ name, price: Math.round(price * 100) / 100 });
+            }
+            newMenu.push({ ...category, items });
+        }
+
+        Storage.saveMenu(newMenu);
+        this._editingMenu = null;
+        this.closeModal();
+        App.renderDrinkButtons();
+        this.renderCategoryToggles();
+        alert('Menu opgeslagen!');
+    },
+
+    /**
+     * Reset the menu to the default from config.
+     */
+    resetMenuToDefault() {
+        const confirmed = confirm('Weet je zeker dat je het menu wilt resetten naar de standaardlijst? Je eigen wijzigingen gaan verloren.');
+        if (!confirmed) return;
+
+        Storage.resetMenu();
+        App.renderDrinkButtons();
+        this.renderCategoryToggles();
+        this.showMenuEditor();
     },
 
     // ==========================================================================
@@ -740,7 +1096,7 @@ const Admin = {
         `;
 
         guestList.forEach(name => {
-            html += `<option value="${this.escapeHtml(name)}">${name}</option>`;
+            html += `<option value="${this.escapeAttr(name)}">${this.escapeDisplay(name)}</option>`;
         });
 
         html += `

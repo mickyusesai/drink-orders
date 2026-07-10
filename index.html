@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Camping du Lac - Honesty Bar</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -26,7 +26,6 @@
                 </div>
                 <nav class="main-nav">
                     <button class="nav-btn active" data-view="guests">Bestellen</button>
-                    <button class="nav-btn" data-view="tab">Rekening</button>
                     <button class="nav-btn admin-nav" data-view="admin">Beheer</button>
                 </nav>
             </div>
@@ -81,27 +80,9 @@
                         <span id="selected-guest-name" class="guest-name-display"></span>
                         <span id="selected-guest-total" class="guest-total-display"></span>
                     </div>
+                    <button class="view-total-btn" onclick="App.showMyTab()">Bekijk totaal</button>
                 </div>
                 <div id="drink-buttons" class="drink-categories"></div>
-            </section>
-        </main>
-
-        <!-- Tab View -->
-        <main id="tab-view" class="view">
-            <section class="tab-section">
-                <div class="section-header">
-                    <h2>Je rekening</h2>
-                    <p class="section-hint">Bekijk wat je hebt besteld</p>
-                </div>
-                <div class="tab-guest-selector">
-                    <label for="tab-guest-select">Selecteer je naam:</label>
-                    <select id="tab-guest-select" class="guest-select">
-                        <option value="">-- Kies je naam --</option>
-                    </select>
-                </div>
-                <div id="tab-content" class="tab-content">
-                    <p class="placeholder-text">Selecteer je naam hierboven.</p>
-                </div>
             </section>
         </main>
 
@@ -127,8 +108,15 @@
                 <!-- Category Toggles -->
                 <div class="admin-toggles-section">
                     <h3>Categorieën Aan/Uit</h3>
-                    <p class="toggle-hint">Zet Cocktails of Foodtruck aan wanneer ze beschikbaar zijn</p>
+                    <p class="toggle-hint">Zet Cocktails of Panini's aan wanneer ze beschikbaar zijn</p>
                     <div id="category-toggles" class="category-toggles"></div>
+                </div>
+
+                <!-- Menu Editor -->
+                <div class="admin-menu-section">
+                    <h3>Menu Bewerken</h3>
+                    <p class="toggle-hint">Voeg drankjes toe, verwijder ze of wijzig prijzen per categorie</p>
+                    <button class="export-btn" onclick="Admin.showMenuEditor()">Menu Bewerken</button>
                 </div>
 
                 <!-- Receptie Section -->
@@ -141,6 +129,22 @@
                 <h3>Gasten Overzicht</h3>
                 <div id="admin-guests-table" class="admin-table-container"></div>
 
+                <!-- PIN codes -->
+                <div class="admin-pins-section">
+                    <h3>Toegangscodes</h3>
+                    <p class="toggle-hint">Wijzig de codes (precies 5 cijfers). Let op: dit is een drempel, geen echte beveiliging.</p>
+                    <div class="pin-change-row">
+                        <label for="new-admin-pin">Beheer PIN:</label>
+                        <input type="password" id="new-admin-pin" class="pin-change-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="•••••">
+                        <button class="export-btn" onclick="Admin.saveAdminPin()">Opslaan</button>
+                    </div>
+                    <div class="pin-change-row">
+                        <label for="new-entry-pin">Toegangscode gasten:</label>
+                        <input type="password" id="new-entry-pin" class="pin-change-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="•••••">
+                        <button class="export-btn" onclick="Admin.saveEntryPin()">Opslaan</button>
+                    </div>
+                </div>
+
                 <div class="guest-management-section">
                     <h3>Gastenlijst Beheren</h3>
                     <div class="guest-management-actions">
@@ -148,10 +152,7 @@
                             <input type="text" id="new-guest-name" placeholder="Nieuwe gast naam..." class="new-guest-input">
                             <button class="export-btn" onclick="Admin.addNewGuest()">Toevoegen</button>
                         </div>
-                        <div class="csv-import-form">
-                            <label for="guest-csv-file" class="export-btn">CSV Importeren</label>
-                            <input type="file" id="guest-csv-file" accept=".csv,.txt" class="hidden-file-input" onchange="Admin.importGuestsCSV(event)">
-                        </div>
+                        <button class="export-btn" onclick="Admin.showGuestImportModal()">Namenlijst Importeren</button>
                         <button class="export-btn" onclick="Admin.showGuestListManager()">Gastenlijst Bewerken</button>
                     </div>
                 </div>
@@ -231,10 +232,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <!-- App Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/firebase.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/config.js?v=2"></script>
+    <script src="js/firebase.js?v=2"></script>
+    <script src="js/storage.js?v=2"></script>
+    <script src="js/admin.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>

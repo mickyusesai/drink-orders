@@ -75,14 +75,11 @@ const Storage = {
     },
 
     /**
-     * Save all tabs to storage and sync to cloud.
+     * Save all tabs to localStorage. Cloud sync happens per guest via
+     * FirebaseSync (addDrinkToCloud etc.), never by pushing this whole object.
      */
     _saveTabs(tabs) {
         localStorage.setItem(this._key('tabs'), JSON.stringify(tabs));
-        // Sync to Firebase if available
-        if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
-            FirebaseSync.saveTabs(tabs);
-        }
     },
 
     /**
@@ -112,6 +109,9 @@ const Storage = {
         tabs[guestName].total = this._calculateTotal(tabs[guestName].drinks);
 
         this._saveTabs(tabs);
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.addDrinkToCloud(guestName, drinkEntry);
+        }
         return drinkEntry;
     },
 
@@ -135,28 +135,42 @@ const Storage = {
         tabs[guestName].total = this._calculateTotal(tabs[guestName].drinks);
 
         this._saveTabs(tabs);
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.removeDrinkFromCloud(guestName, drinkId);
+        }
         return true;
     },
 
     /**
-     * Mark a guest as paid.
+     * Mark a guest as paid (optionally with payment method 'cash' or 'card').
      */
-    markAsPaid(guestName, paid = true) {
+    markAsPaid(guestName, paid = true, method = null) {
         const tabs = this.getAllTabs();
 
         if (tabs[guestName]) {
             tabs[guestName].paid = paid;
+            tabs[guestName].paymentMethod = paid ? method : null;
+            tabs[guestName].paidAt = paid ? Date.now() : null;
             this._saveTabs(tabs);
+            if (typeof FirebaseSync !== 'undefined') {
+                FirebaseSync.updateGuestFields(guestName, {
+                    paid: tabs[guestName].paid,
+                    paymentMethod: tabs[guestName].paymentMethod,
+                    paidAt: tabs[guestName].paidAt
+                });
+            }
             return true;
         }
         return false;
     },
 
     /**
-     * Calculate total from drinks array.
+     * Calculate total from drinks array, summing in whole cents so
+     * floating-point errors can't accumulate.
      */
     _calculateTotal(drinks) {
-        return drinks.reduce((sum, drink) => sum + drink.price, 0);
+        const cents = drinks.reduce((sum, drink) => sum + Math.round((drink.price || 0) * 100), 0);
+        return cents / 100;
     },
 
     /**
@@ -171,9 +185,11 @@ const Storage = {
      */
     getSummary() {
         const tabs = this.getAllTabs();
-        let totalRevenue = 0;
-        let totalPaid = 0;
-        let totalUnpaid = 0;
+        let revenueCents = 0;
+        let paidCents = 0;
+        let unpaidCents = 0;
+        let paidCashCents = 0;
+        let paidCardCents = 0;
         let guestCount = 0;
         let paidCount = 0;
 
@@ -181,20 +197,25 @@ const Storage = {
             const tab = tabs[name];
             if (tab.drinks.length > 0) {
                 guestCount++;
-                totalRevenue += tab.total;
+                const cents = Math.round((tab.total || 0) * 100);
+                revenueCents += cents;
                 if (tab.paid) {
                     paidCount++;
-                    totalPaid += tab.total;
+                    paidCents += cents;
+                    if (tab.paymentMethod === 'cash') paidCashCents += cents;
+                    if (tab.paymentMethod === 'card') paidCardCents += cents;
                 } else {
-                    totalUnpaid += tab.total;
+                    unpaidCents += cents;
                 }
             }
         });
 
         return {
-            totalRevenue,
-            totalPaid,
-            totalUnpaid,
+            totalRevenue: revenueCents / 100,
+            totalPaid: paidCents / 100,
+            totalUnpaid: unpaidCents / 100,
+            totalPaidCash: paidCashCents / 100,
+            totalPaidCard: paidCardCents / 100,
             guestCount,
             paidCount,
             unpaidCount: guestCount - paidCount
@@ -206,7 +227,8 @@ const Storage = {
      */
     exportCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Gast,Totaal (EUR),Betaald,Aantal\n";
+        // BOM + semicolons so Dutch Excel opens the file correctly
+        let csv = "﻿Gast;Totaal (EUR);Betaald;Betaalmethode;Betaald op;Aantal\n";
 
         // Sort by name
         const sortedNames = Object.keys(tabs).sort();
@@ -216,7 +238,12 @@ const Storage = {
             if (tab.drinks.length > 0) {
                 const total = tab.total.toFixed(2).replace('.', ',');
                 const paid = tab.paid ? "Ja" : "Nee";
-                csv += `"${name}",${total},${paid},${tab.drinks.length}\n`;
+                const method = tab.paymentMethod === 'cash' ? 'Contant'
+                    : tab.paymentMethod === 'card' ? 'PIN' : '';
+                const paidAt = tab.paidAt
+                    ? new Date(tab.paidAt).toLocaleString(APP_CONFIG.locale)
+                    : '';
+                csv += `"${name}";${total};${paid};${method};"${paidAt}";${tab.drinks.length}\n`;
             }
         });
 
@@ -228,7 +255,7 @@ const Storage = {
      */
     exportDetailedCSV() {
         const tabs = this.getAllTabs();
-        let csv = "Gast,Item,Prijs (EUR),Datum/Tijd\n";
+        let csv = "﻿Gast;Item;Prijs (EUR);Datum/Tijd\n";
 
         const sortedNames = Object.keys(tabs).sort();
 
@@ -237,7 +264,7 @@ const Storage = {
             tab.drinks.forEach(drink => {
                 const price = drink.price.toFixed(2).replace('.', ',');
                 const date = new Date(drink.timestamp).toLocaleString(APP_CONFIG.locale);
-                csv += `"${name}","${drink.name}",${price},"${date}"\n`;
+                csv += `"${name}";"${drink.name}";${price};"${date}"\n`;
             });
         });
 
@@ -246,12 +273,17 @@ const Storage = {
 
     /**
      * Clear all data (use with caution - for starting a new week).
+     * Records the reset timestamp so other devices clear via the explicit
+     * reset signal instead of interpreting it as data loss.
      */
     clearAll() {
+        const resetAt = Date.now();
+        localStorage.setItem(this._key('lastResetAt'), String(resetAt));
         localStorage.removeItem(this._key('tabs'));
+        localStorage.removeItem(this._key('pendingOps'));
         // Also clear cloud data
         if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
-            FirebaseSync.clearAllData();
+            FirebaseSync.clearAllData(resetAt);
         }
     },
 
@@ -264,16 +296,99 @@ const Storage = {
 
     /**
      * Restore data from backup JSON string.
+     * This is an intentional full replacement, locally and in the cloud.
      */
     restore(jsonString) {
         try {
             const data = JSON.parse(jsonString);
-            localStorage.setItem(this._key('tabs'), JSON.stringify(data));
+            if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                return false;
+            }
+            this._saveTabs(data);
+            if (typeof FirebaseSync !== 'undefined') {
+                FirebaseSync.saveTabs(data);
+            }
             return true;
         } catch (e) {
             console.error('Error restoring backup:', e);
             return false;
         }
+    },
+
+    // ==========================================================================
+    // AUTOMATIC BACKUPS
+    // ==========================================================================
+
+    /**
+     * Write today's automatic backup snapshot if it doesn't exist yet.
+     * Keeps the newest 7 snapshots locally and mirrors them to the cloud.
+     */
+    autoBackup() {
+        const tabs = this.getAllTabs();
+        const hasData = Object.keys(tabs).some(name =>
+            tabs[name] && tabs[name].drinks && tabs[name].drinks.length > 0);
+        if (!hasData) return;
+
+        const today = new Date().toISOString().slice(0, 10);
+        const key = this._key('autoBackup_' + today);
+        if (localStorage.getItem(key)) return;
+
+        this.snapshotBackup(today, tabs);
+    },
+
+    /**
+     * Write a named backup snapshot (also used for the pre-"Nieuwe Week" copy).
+     */
+    snapshotBackup(label, tabs = null) {
+        const data = tabs || this.getAllTabs();
+        try {
+            localStorage.setItem(this._key('autoBackup_' + label), JSON.stringify(data));
+        } catch (e) {
+            console.error('Auto backup failed (storage full?):', e);
+            return;
+        }
+        this._pruneAutoBackups();
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.saveDailyBackup(label, data);
+        }
+    },
+
+    /**
+     * List available automatic backups, newest first.
+     */
+    listAutoBackups() {
+        const prefix = this._key('autoBackup_');
+        const backups = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    let guestCount = 0;
+                    let totalCents = 0;
+                    Object.keys(data).forEach(name => {
+                        if (data[name].drinks && data[name].drinks.length > 0) {
+                            guestCount++;
+                            totalCents += Math.round((data[name].total || 0) * 100);
+                        }
+                    });
+                    backups.push({
+                        key,
+                        label: key.slice(prefix.length),
+                        guestCount,
+                        total: totalCents / 100
+                    });
+                } catch (e) {
+                    // Skip corrupted snapshots
+                }
+            }
+        }
+        return backups.sort((a, b) => b.label.localeCompare(a.label));
+    },
+
+    _pruneAutoBackups(keep = 7) {
+        const backups = this.listAutoBackups();
+        backups.slice(keep).forEach(backup => localStorage.removeItem(backup.key));
     },
 
     // ==========================================================================
@@ -320,6 +435,9 @@ const Storage = {
             if (!tabs[name]) {
                 tabs[name] = { drinks: [], total: 0, paid: false };
                 this._saveTabs(tabs);
+                if (typeof FirebaseSync !== 'undefined') {
+                    FirebaseSync.saveGuestTab(name, tabs[name]);
+                }
             }
             return true;
         }
@@ -345,33 +463,107 @@ const Storage = {
             const tabs = this.getAllTabs();
             delete tabs[name];
             this._saveTabs(tabs);
+            if (typeof FirebaseSync !== 'undefined') {
+                FirebaseSync.removeGuestFromCloud(name);
+            }
             return { success: true };
         }
         return { success: false, reason: 'notFound' };
     },
 
     /**
-     * Import guests from CSV.
-     * Returns number of guests added.
+     * Rename a guest, moving their tab (and orders) to the new name.
      */
-    importGuestsFromCSV(csvText) {
-        const lines = csvText.split(/[\r\n]+/).filter(line => line.trim());
-        const guests = [];
+    renameGuest(oldName, newName) {
+        newName = (newName || '').trim();
+        if (!newName) {
+            return { success: false, reason: 'empty' };
+        }
+        if (newName === oldName) {
+            return { success: true };
+        }
 
-        lines.forEach(line => {
-            // Handle both comma and semicolon separated, and quoted values
+        const guests = this.getGuestList();
+        const tabs = this.getAllTabs();
+        const lower = newName.toLowerCase();
+        const duplicate = guests.some(g => g !== oldName && g.toLowerCase() === lower) ||
+            Object.keys(tabs).some(n => n !== oldName && n.toLowerCase() === lower);
+        if (duplicate) {
+            return { success: false, reason: 'duplicate' };
+        }
+
+        const index = guests.indexOf(oldName);
+        if (index === -1) {
+            return { success: false, reason: 'notFound' };
+        }
+        guests[index] = newName;
+        this.saveGuestList(guests);
+
+        const tab = tabs[oldName] || { drinks: [], total: 0, paid: false };
+        delete tabs[oldName];
+        tabs[newName] = tab;
+        this._saveTabs(tabs);
+
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.renameGuestTab(oldName, newName, tab);
+        }
+        return { success: true, newName };
+    },
+
+    /**
+     * Import guest names from pasted text (one name per line).
+     * mode 'add' appends new names (skipping duplicates); mode 'replace'
+     * replaces the list but keeps guests who still have an unpaid tab.
+     * Returns { added, skipped, total }.
+     */
+    importGuests(text, mode = 'add') {
+        const names = [];
+        const seen = new Set();
+        String(text).split(/[\r\n]+/).forEach(line => {
             const name = line.replace(/["']/g, '').trim();
-            if (name && name.length > 0) {
-                guests.push(name);
+            if (name && !seen.has(name.toLowerCase())) {
+                seen.add(name.toLowerCase());
+                names.push(name);
             }
         });
 
-        if (guests.length > 0) {
-            this.saveGuestList(guests);
-            this.init(); // Re-initialize tabs
-            return guests.length;
+        if (names.length === 0) {
+            return { added: 0, skipped: 0, total: this.getGuestList().length };
         }
-        return 0;
+
+        let newList;
+        let added = 0;
+        let skipped = 0;
+
+        if (mode === 'replace') {
+            newList = [...names];
+            added = names.length;
+            // Guests with an open (unpaid) tab must never vanish from the grid
+            const tabs = this.getAllTabs();
+            Object.keys(tabs).forEach(name => {
+                const tab = tabs[name];
+                if (tab.drinks.length > 0 && !tab.paid &&
+                    !newList.some(n => n.toLowerCase() === name.toLowerCase())) {
+                    newList.push(name);
+                }
+            });
+        } else {
+            const current = this.getGuestList();
+            const currentLower = new Set(current.map(n => n.toLowerCase()));
+            newList = [...current];
+            names.forEach(name => {
+                if (currentLower.has(name.toLowerCase())) {
+                    skipped++;
+                } else {
+                    newList.push(name);
+                    added++;
+                }
+            });
+        }
+
+        this.saveGuestList(newList);
+        this.init(); // Seed tabs for the new names
+        return { added, skipped, total: newList.length };
     },
 
     /**
@@ -379,6 +571,84 @@ const Storage = {
      */
     resetGuestList() {
         localStorage.removeItem(this._key('customGuests'));
+    },
+
+    // ==========================================================================
+    // PIN CODES (te wijzigen in Beheer; config levert de standaardwaarde)
+    // ==========================================================================
+
+    getAdminPin() {
+        return localStorage.getItem(this._key('adminPin')) || APP_CONFIG.adminPin;
+    },
+
+    getEntryPin() {
+        return localStorage.getItem(this._key('entryPin')) || APP_CONFIG.entryPin;
+    },
+
+    setAdminPin(pin) {
+        localStorage.setItem(this._key('adminPin'), pin);
+        this._syncPins();
+    },
+
+    setEntryPin(pin) {
+        localStorage.setItem(this._key('entryPin'), pin);
+        this._syncPins();
+    },
+
+    _syncPins() {
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.savePins({
+                admin: this.getAdminPin(),
+                entry: this.getEntryPin()
+            });
+        }
+    },
+
+    // ==========================================================================
+    // MENU (categorieën + drankjes, bewerkbaar in Beheer)
+    // ==========================================================================
+
+    /**
+     * Get the current menu: the saved custom menu if present, otherwise the
+     * default from config. Coerces item lists back to arrays (Firebase can
+     * return array-like objects).
+     */
+    getMenu() {
+        const saved = localStorage.getItem(this._key('menu'));
+        if (saved) {
+            try {
+                const menu = JSON.parse(saved);
+                if (Array.isArray(menu) && menu.length > 0) {
+                    return menu.map(category => ({
+                        ...category,
+                        items: Object.values(category.items || {})
+                    }));
+                }
+            } catch (e) {
+                console.error('Error parsing stored menu:', e);
+            }
+        }
+        return DEFAULT_MENU;
+    },
+
+    /**
+     * Save a custom menu and sync to cloud.
+     */
+    saveMenu(menu) {
+        localStorage.setItem(this._key('menu'), JSON.stringify(menu));
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.saveMenu(menu);
+        }
+    },
+
+    /**
+     * Reset the menu to the default from config.
+     */
+    resetMenu() {
+        localStorage.removeItem(this._key('menu'));
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.saveMenu(DEFAULT_MENU);
+        }
     },
 
     // ==========================================================================
