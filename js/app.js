@@ -551,6 +551,9 @@ const App = {
         const { guestName, drink } = this.lastAddedDrink;
         const success = Storage.removeDrink(guestName, drink.id);
 
+        this.lastAddedDrink = null;
+        this.clearUndoTimeout();
+
         if (success) {
             const updatedTab = Storage.getGuestTab(guestName);
 
@@ -562,13 +565,12 @@ const App = {
             overlay.querySelector('.undo-link').style.display = 'none';
             overlay.querySelector('.auto-close-hint').textContent = '';
 
-            setTimeout(() => {
+            // Track the timer so closing the popup by hand cancels it —
+            // otherwise it would later yank the view back to the guest list.
+            this.undoTimeout = setTimeout(() => {
                 this.closePopupAndReset();
             }, 1500);
         }
-
-        this.lastAddedDrink = null;
-        this.clearUndoTimeout();
     },
 
     /**
