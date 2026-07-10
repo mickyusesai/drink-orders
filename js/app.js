@@ -194,7 +194,8 @@ const App = {
         if (name.includes('snack')) return 'snack.png';
         if (name.includes('thee') || name.includes('koffie') || name.includes('coffee') || name.includes('tea')) return 'coffee tea.png';
         if (name.includes('fris') || name.includes('redbull')) return 'soft drinks redbull.png';
-        if (name.includes('cocktail') || name.includes('mocktail') || name.includes('mixer')) return 'cocktails mocktails.png';
+        if (name.includes('cocktail') || name.includes('mocktail') || name.includes('mixer') ||
+            name.includes('vodka') || name.includes('jack') || name.includes('bacardi') || name.includes('rum')) return 'cocktails mocktails.png';
         if (name.includes('panini')) return 'panini.png';
         if (name.includes('smoothie')) return 'smoothie.png';
         if (name.includes('ijsje') || name.includes('ice')) return 'ice cream.png';
