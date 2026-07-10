@@ -466,27 +466,98 @@ const Storage = {
     },
 
     /**
-     * Import guests from CSV.
-     * Returns number of guests added.
+     * Rename a guest, moving their tab (and orders) to the new name.
      */
-    importGuestsFromCSV(csvText) {
-        const lines = csvText.split(/[\r\n]+/).filter(line => line.trim());
-        const guests = [];
+    renameGuest(oldName, newName) {
+        newName = (newName || '').trim();
+        if (!newName) {
+            return { success: false, reason: 'empty' };
+        }
+        if (newName === oldName) {
+            return { success: true };
+        }
 
-        lines.forEach(line => {
-            // Handle both comma and semicolon separated, and quoted values
+        const guests = this.getGuestList();
+        const tabs = this.getAllTabs();
+        const lower = newName.toLowerCase();
+        const duplicate = guests.some(g => g !== oldName && g.toLowerCase() === lower) ||
+            Object.keys(tabs).some(n => n !== oldName && n.toLowerCase() === lower);
+        if (duplicate) {
+            return { success: false, reason: 'duplicate' };
+        }
+
+        const index = guests.indexOf(oldName);
+        if (index === -1) {
+            return { success: false, reason: 'notFound' };
+        }
+        guests[index] = newName;
+        this.saveGuestList(guests);
+
+        const tab = tabs[oldName] || { drinks: [], total: 0, paid: false };
+        delete tabs[oldName];
+        tabs[newName] = tab;
+        this._saveTabs(tabs);
+
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.renameGuestTab(oldName, newName, tab);
+        }
+        return { success: true, newName };
+    },
+
+    /**
+     * Import guest names from pasted text (one name per line).
+     * mode 'add' appends new names (skipping duplicates); mode 'replace'
+     * replaces the list but keeps guests who still have an unpaid tab.
+     * Returns { added, skipped, total }.
+     */
+    importGuests(text, mode = 'add') {
+        const names = [];
+        const seen = new Set();
+        String(text).split(/[\r\n]+/).forEach(line => {
             const name = line.replace(/["']/g, '').trim();
-            if (name && name.length > 0) {
-                guests.push(name);
+            if (name && !seen.has(name.toLowerCase())) {
+                seen.add(name.toLowerCase());
+                names.push(name);
             }
         });
 
-        if (guests.length > 0) {
-            this.saveGuestList(guests);
-            this.init(); // Re-initialize tabs
-            return guests.length;
+        if (names.length === 0) {
+            return { added: 0, skipped: 0, total: this.getGuestList().length };
         }
-        return 0;
+
+        let newList;
+        let added = 0;
+        let skipped = 0;
+
+        if (mode === 'replace') {
+            newList = [...names];
+            added = names.length;
+            // Guests with an open (unpaid) tab must never vanish from the grid
+            const tabs = this.getAllTabs();
+            Object.keys(tabs).forEach(name => {
+                const tab = tabs[name];
+                if (tab.drinks.length > 0 && !tab.paid &&
+                    !newList.some(n => n.toLowerCase() === name.toLowerCase())) {
+                    newList.push(name);
+                }
+            });
+        } else {
+            const current = this.getGuestList();
+            const currentLower = new Set(current.map(n => n.toLowerCase()));
+            newList = [...current];
+            names.forEach(name => {
+                if (currentLower.has(name.toLowerCase())) {
+                    skipped++;
+                } else {
+                    newList.push(name);
+                    added++;
+                }
+            });
+        }
+
+        this.saveGuestList(newList);
+        this.init(); // Seed tabs for the new names
+        return { added, skipped, total: newList.length };
     },
 
     /**

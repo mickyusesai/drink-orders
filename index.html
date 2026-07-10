@@ -155,10 +155,7 @@
                             <input type="text" id="new-guest-name" placeholder="Nieuwe gast naam..." class="new-guest-input">
                             <button class="export-btn" onclick="Admin.addNewGuest()">Toevoegen</button>
                         </div>
-                        <div class="csv-import-form">
-                            <label for="guest-csv-file" class="export-btn">CSV Importeren</label>
-                            <input type="file" id="guest-csv-file" accept=".csv,.txt" class="hidden-file-input" onchange="Admin.importGuestsCSV(event)">
-                        </div>
+                        <button class="export-btn" onclick="Admin.showGuestImportModal()">Namenlijst Importeren</button>
                         <button class="export-btn" onclick="Admin.showGuestListManager()">Gastenlijst Bewerken</button>
                     </div>
                 </div>

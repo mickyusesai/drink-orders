@@ -608,35 +608,75 @@ const Admin = {
     },
 
     /**
-     * Import guests from CSV file.
+     * Show the paste-to-import modal for guest names.
      */
-    importGuestsCSV(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    showGuestImportModal() {
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
 
-        const confirmed = confirm(
-            'Dit zal de huidige gastenlijst VERVANGEN met de namen uit het CSV bestand.\n\n' +
-            'Bestaande bestellingen blijven behouden.\n\n' +
-            'Doorgaan?'
-        );
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Namenlijst Importeren</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="manager-hint">Plak hieronder een lijst met namen — één naam per regel.</p>
+                <textarea id="guest-import-text" class="guest-import-textarea" placeholder="Familie Jansen&#10;De Vries&#10;Plek 12&#10;..."></textarea>
+                <div class="import-mode-options">
+                    <label class="import-mode-option">
+                        <input type="radio" name="import-mode" value="add" checked>
+                        <span><strong>Toevoegen</strong> — namen worden aan de huidige lijst toegevoegd (dubbele worden overgeslagen)</span>
+                    </label>
+                    <label class="import-mode-option">
+                        <input type="radio" name="import-mode" value="replace">
+                        <span><strong>Vervangen</strong> — de geplakte lijst wordt de nieuwe lijst (gasten met een open rekening blijven staan)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn paid-btn" onclick="Admin.confirmGuestImport()">Importeren</button>
+            </div>
+        `;
 
-        if (!confirmed) {
-            event.target.value = '';
+        modal.classList.add('show');
+        setTimeout(() => document.getElementById('guest-import-text').focus(), 100);
+    },
+
+    /**
+     * Run the guest import with the chosen mode.
+     */
+    confirmGuestImport() {
+        const text = document.getElementById('guest-import-text').value;
+        const mode = document.querySelector('input[name="import-mode"]:checked').value;
+
+        if (!text.trim()) {
+            alert('Plak eerst een lijst met namen.');
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const count = Storage.importGuestsFromCSV(e.target.result);
-            if (count > 0) {
-                App.renderGuestButtons();
-                alert(`${count} gasten geïmporteerd uit CSV.`);
-            } else {
-                alert('Geen geldige namen gevonden in het bestand.');
-            }
-        };
-        reader.readAsText(file);
-        event.target.value = '';
+        if (mode === 'replace') {
+            const confirmed = confirm('Weet je zeker dat je de huidige gastenlijst wilt vervangen?\n\nGasten met een open rekening blijven behouden.');
+            if (!confirmed) return;
+        }
+
+        const result = Storage.importGuests(text, mode);
+
+        if (mode === 'add' && result.added === 0) {
+            alert(result.skipped > 0
+                ? `Geen nieuwe namen toegevoegd (${result.skipped} stonden al in de lijst).`
+                : 'Geen geldige namen gevonden.');
+            return;
+        }
+
+        this.closeModal();
+        App.renderGuestButtons();
+
+        if (mode === 'replace') {
+            alert(`Gastenlijst vervangen: ${result.total} namen op de lijst.`);
+        } else {
+            alert(`${result.added} namen toegevoegd` +
+                (result.skipped > 0 ? ` (${result.skipped} overgeslagen omdat ze al bestonden).` : '.'));
+        }
     },
 
     /**
@@ -654,7 +694,7 @@ const Admin = {
                 <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
             <div class="modal-body guest-list-manager">
-                <p class="manager-hint">Klik op de X om een gast te verwijderen. Gasten met bestellingen kunnen niet worden verwijderd.</p>
+                <p class="manager-hint">Wijzig een naam met ✎ of verwijder een gast met de X. Gasten met bestellingen kunnen niet worden verwijderd (wel hernoemd — bestellingen verhuizen mee).</p>
                 <div class="guest-list-items">
         `;
 
@@ -665,10 +705,9 @@ const Admin = {
             html += `
                 <div class="guest-list-item ${hasOrders ? 'has-orders' : ''}">
                     <span class="guest-list-name">${name}</span>
-                    ${hasOrders
-                        ? `<span class="guest-orders-badge">${tab.drinks.length} items</span>`
-                        : `<button class="remove-guest-btn" onclick="Admin.removeGuest('${this.escapeHtml(name)}')">&times;</button>`
-                    }
+                    ${hasOrders ? `<span class="guest-orders-badge">${tab.drinks.length} items</span>` : ''}
+                    <button class="rename-guest-btn" onclick="Admin.renameGuestPrompt('${this.escapeHtml(name)}')" title="Naam wijzigen">&#9998;</button>
+                    ${hasOrders ? '' : `<button class="remove-guest-btn" onclick="Admin.removeGuest('${this.escapeHtml(name)}')">&times;</button>`}
                 </div>
             `;
         });
@@ -683,6 +722,27 @@ const Admin = {
 
         content.innerHTML = html;
         modal.classList.add('show');
+    },
+
+    /**
+     * Ask for a new name and rename the guest (orders move along).
+     */
+    renameGuestPrompt(oldName) {
+        const newName = prompt(`Nieuwe naam voor "${oldName}":`, oldName);
+        if (newName === null) return;
+
+        const result = Storage.renameGuest(oldName, newName);
+        if (result.success) {
+            App.renderGuestButtons();
+            this.renderAdminView();
+            this.showGuestListManager(); // Refresh the modal
+        } else if (result.reason === 'duplicate') {
+            alert(`"${newName.trim()}" staat al in de lijst.`);
+        } else if (result.reason === 'empty') {
+            alert('Voer een geldige naam in.');
+        } else {
+            alert('Naam wijzigen is niet gelukt.');
+        }
     },
 
     /**
