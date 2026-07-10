@@ -177,12 +177,9 @@ const Admin = {
                         <option value="">-- Kies drankje --</option>
         `;
 
-        DRINK_CATEGORIES.forEach(category => {
+        Storage.getMenu().forEach(category => {
             category.items.forEach(item => {
-                // Handle both string items (fixed price) and object items (individual price)
-                const itemName = typeof item === 'string' ? item : item.name;
-                const itemPrice = typeof item === 'string' ? category.price : item.price;
-                html += `<option value="${itemName}|${itemPrice}">${itemName} (${App.formatPrice(itemPrice)})</option>`;
+                html += `<option value="${item.name}|${item.price}">${item.name} (${App.formatPrice(item.price)})</option>`;
             });
         });
 
@@ -738,7 +735,7 @@ const Admin = {
 
         let html = '';
 
-        DRINK_CATEGORIES.forEach(category => {
+        Storage.getMenu().forEach(category => {
             if (category.toggleKey) {
                 const isEnabled = Storage.isCategoryEnabled(category.toggleKey);
                 html += `
@@ -753,6 +750,138 @@ const Admin = {
         });
 
         container.innerHTML = html;
+    },
+
+    // ==========================================================================
+    // MENU EDITOR
+    // ==========================================================================
+
+    /**
+     * Escape text for use inside an HTML attribute value.
+     */
+    escapeAttr(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    },
+
+    /**
+     * Show the menu editor modal.
+     */
+    showMenuEditor() {
+        this._editingMenu = Storage.getMenu();
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+
+        let html = `
+            <div class="modal-header">
+                <h2>Menu Bewerken</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body menu-editor">
+                <p class="manager-hint">Wijzig namen en prijzen, of verwijder items met de X. Verwijderde items blijven gewoon op bestaande rekeningen staan.</p>
+        `;
+
+        this._editingMenu.forEach(category => {
+            html += `
+                <div class="menu-editor-category" data-category-id="${this.escapeAttr(category.id)}">
+                    <div class="menu-editor-header" style="background-color: ${this.escapeAttr(category.color)}">
+                        ${category.name}${category.toggleKey ? ' <span class="menu-toggle-note">(aan/uit te zetten)</span>' : ''}
+                    </div>
+                    <div class="menu-editor-items">
+                        ${category.items.map(item => this._menuEditorRowHtml(item.name, item.price)).join('')}
+                    </div>
+                    <button class="menu-add-item-btn" onclick="Admin.addMenuEditorRow(this)">+ Item toevoegen</button>
+                </div>
+            `;
+        });
+
+        html += `
+            </div>
+            <div class="modal-footer menu-editor-footer">
+                <button class="export-btn danger" onclick="Admin.resetMenuToDefault()">Reset naar standaard</button>
+                <button class="action-btn paid-btn" onclick="Admin.saveMenuFromEditor()">Opslaan</button>
+            </div>
+        `;
+
+        content.innerHTML = html;
+        modal.classList.add('show');
+    },
+
+    _menuEditorRowHtml(name = '', price = '') {
+        return `
+            <div class="menu-item-row">
+                <input type="text" class="menu-item-name" value="${this.escapeAttr(name)}" placeholder="Naam...">
+                <input type="number" class="menu-item-price" value="${price}" step="0.05" min="0" inputmode="decimal" placeholder="0.00">
+                <button class="remove-guest-btn" onclick="this.closest('.menu-item-row').remove()">&times;</button>
+            </div>
+        `;
+    },
+
+    /**
+     * Add an empty item row to a category in the editor.
+     */
+    addMenuEditorRow(button) {
+        const itemsDiv = button.closest('.menu-editor-category').querySelector('.menu-editor-items');
+        itemsDiv.insertAdjacentHTML('beforeend', this._menuEditorRowHtml());
+        const newRow = itemsDiv.lastElementChild;
+        newRow.querySelector('.menu-item-name').focus();
+    },
+
+    /**
+     * Read the editor form, validate, and save the menu.
+     */
+    saveMenuFromEditor() {
+        if (!this._editingMenu) return;
+
+        const newMenu = [];
+        for (const category of this._editingMenu) {
+            const container = document.querySelector(`.menu-editor-category[data-category-id="${category.id}"]`);
+            if (!container) continue;
+
+            const items = [];
+            for (const row of container.querySelectorAll('.menu-item-row')) {
+                const name = row.querySelector('.menu-item-name').value.trim();
+                const priceValue = row.querySelector('.menu-item-price').value.replace(',', '.');
+                const price = parseFloat(priceValue);
+
+                if (!name && priceValue.trim() === '') {
+                    continue; // Empty leftover row
+                }
+                if (!name) {
+                    alert(`Er is een item zonder naam in "${category.name}".`);
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    alert(`Ongeldige prijs voor "${name}" in "${category.name}".`);
+                    return;
+                }
+                items.push({ name, price: Math.round(price * 100) / 100 });
+            }
+            newMenu.push({ ...category, items });
+        }
+
+        Storage.saveMenu(newMenu);
+        this._editingMenu = null;
+        this.closeModal();
+        App.renderDrinkButtons();
+        this.renderCategoryToggles();
+        alert('Menu opgeslagen!');
+    },
+
+    /**
+     * Reset the menu to the default from config.
+     */
+    resetMenuToDefault() {
+        const confirmed = confirm('Weet je zeker dat je het menu wilt resetten naar de standaardlijst? Je eigen wijzigingen gaan verloren.');
+        if (!confirmed) return;
+
+        Storage.resetMenu();
+        App.renderDrinkButtons();
+        this.renderCategoryToggles();
+        this.showMenuEditor();
     },
 
     // ==========================================================================

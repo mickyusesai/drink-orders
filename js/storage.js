@@ -497,6 +497,53 @@ const Storage = {
     },
 
     // ==========================================================================
+    // MENU (categorieën + drankjes, bewerkbaar in Beheer)
+    // ==========================================================================
+
+    /**
+     * Get the current menu: the saved custom menu if present, otherwise the
+     * default from config. Coerces item lists back to arrays (Firebase can
+     * return array-like objects).
+     */
+    getMenu() {
+        const saved = localStorage.getItem(this._key('menu'));
+        if (saved) {
+            try {
+                const menu = JSON.parse(saved);
+                if (Array.isArray(menu) && menu.length > 0) {
+                    return menu.map(category => ({
+                        ...category,
+                        items: Object.values(category.items || {})
+                    }));
+                }
+            } catch (e) {
+                console.error('Error parsing stored menu:', e);
+            }
+        }
+        return DEFAULT_MENU;
+    },
+
+    /**
+     * Save a custom menu and sync to cloud.
+     */
+    saveMenu(menu) {
+        localStorage.setItem(this._key('menu'), JSON.stringify(menu));
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.saveMenu(menu);
+        }
+    },
+
+    /**
+     * Reset the menu to the default from config.
+     */
+    resetMenu() {
+        localStorage.removeItem(this._key('menu'));
+        if (typeof FirebaseSync !== 'undefined') {
+            FirebaseSync.saveMenu(DEFAULT_MENU);
+        }
+    },
+
+    // ==========================================================================
     // CATEGORY TOGGLES (Cocktails, Foodtruck, etc.)
     // ==========================================================================
 

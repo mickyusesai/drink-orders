@@ -260,12 +260,10 @@ const App = {
      * Find the category color for a drink item.
      */
     getItemCategoryColor(itemName) {
-        for (const category of DRINK_CATEGORIES) {
-            const found = category.items.some(item => {
-                const name = typeof item === 'string' ? item : item.name;
-                return name === itemName;
-            });
-            if (found) return category.color;
+        for (const category of Storage.getMenu()) {
+            if (category.items.some(item => item.name === itemName)) {
+                return category.color;
+            }
         }
         return '#666'; // Default gray if not found
     },
@@ -316,45 +314,38 @@ const App = {
         // Render favorites category if guest has 5+ orders
         this.renderFavoritesCategory(container);
 
-        DRINK_CATEGORIES.forEach(category => {
+        Storage.getMenu().forEach(category => {
             // Check if category is toggleable and if it's currently hidden
             if (category.toggleKey && !Storage.isCategoryEnabled(category.toggleKey)) {
                 return; // Skip hidden categories
+            }
+            if (!category.items || category.items.length === 0) {
+                return; // Skip emptied categories
             }
 
             const categoryDiv = document.createElement('div');
             categoryDiv.className = 'drink-category';
 
-            // Check if category has a fixed price or items have individual prices
-            const hasFixedPrice = typeof category.price === 'number';
-
             const header = document.createElement('div');
             header.className = 'category-header';
             header.style.backgroundColor = category.color;
-            header.innerHTML = `
-                <span class="category-name">${category.name}</span>
-                ${hasFixedPrice ? `<span class="category-price">${this.formatPrice(category.price)}</span>` : ''}
-            `;
+            header.innerHTML = `<span class="category-name">${category.name}</span>`;
             categoryDiv.appendChild(header);
 
             const itemsDiv = document.createElement('div');
             itemsDiv.className = 'category-items';
 
             category.items.forEach(item => {
-                // Handle both string items (fixed price) and object items (individual price)
-                const itemName = typeof item === 'string' ? item : item.name;
-                const itemPrice = typeof item === 'string' ? category.price : item.price;
-
                 const btn = document.createElement('button');
                 btn.className = 'drink-btn';
                 btn.innerHTML = `
-                    <span class="drink-btn-name">${itemName}</span>
-                    <span class="drink-btn-price">${this.formatPrice(itemPrice)}</span>
+                    <span class="drink-btn-name">${item.name}</span>
+                    <span class="drink-btn-price">${this.formatPrice(item.price)}</span>
                 `;
                 btn.style.setProperty('--category-color', category.color);
-                btn.dataset.drink = itemName;
-                btn.dataset.price = itemPrice;
-                btn.addEventListener('click', () => this.addDrink(itemName, itemPrice));
+                btn.dataset.drink = item.name;
+                btn.dataset.price = item.price;
+                btn.addEventListener('click', () => this.addDrink(item.name, item.price));
                 itemsDiv.appendChild(btn);
             });
 

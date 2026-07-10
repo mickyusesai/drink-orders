@@ -1706,3 +1706,80 @@ body {
     font-size: 13px;
     white-space: nowrap;
 }
+
+/* ==========================================================================
+   Menu editor (Beheer)
+   ========================================================================== */
+
+.menu-editor-category {
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.menu-editor-header {
+    padding: 10px 14px;
+    color: white;
+    font-weight: 700;
+}
+
+.menu-toggle-note {
+    font-weight: 400;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.menu-editor-items {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.menu-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-item-name {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 15px;
+}
+
+.menu-item-price {
+    width: 90px;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 15px;
+    text-align: right;
+}
+
+.menu-add-item-btn {
+    margin: 0 14px 12px;
+    padding: 8px 14px;
+    background: #f0f0f0;
+    border: 1px dashed #aaa;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.menu-add-item-btn:hover {
+    background: #e6e6e6;
+}
+
+.menu-editor-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}

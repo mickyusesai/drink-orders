@@ -199,6 +199,20 @@ const FirebaseSync = {
             }
         });
 
+        // Listen for menu changes
+        this.db.ref('menu').on('value', (snapshot) => {
+            const cloudMenu = snapshot.val();
+            if (cloudMenu) {
+                localStorage.setItem(APP_CONFIG.storagePrefix + 'menu', JSON.stringify(cloudMenu));
+                if (typeof App !== 'undefined' && App.renderDrinkButtons) {
+                    App.renderDrinkButtons();
+                }
+                if (typeof Admin !== 'undefined' && Admin.renderCategoryToggles) {
+                    Admin.renderCategoryToggles();
+                }
+            }
+        });
+
         // Listen for guest list changes
         this.db.ref('customGuests').on('value', (snapshot) => {
             const cloudData = snapshot.val();
@@ -528,6 +542,16 @@ const FirebaseSync = {
                 }
             })
             .catch(err => console.error('Save backup error:', err));
+    },
+
+    /**
+     * Save the (edited) menu to Firebase.
+     */
+    saveMenu(menu) {
+        if (!this.db || !this.isOnline) return;
+
+        this.db.ref('menu').set(menu)
+            .catch(err => console.error('Save menu error:', err));
     },
 
     /**
