@@ -281,6 +281,8 @@ const Storage = {
         localStorage.setItem(this._key('lastResetAt'), String(resetAt));
         localStorage.removeItem(this._key('tabs'));
         localStorage.removeItem(this._key('pendingOps'));
+        // A new week starts with a completely empty guest list
+        this.saveGuestList([]);
         // Also clear cloud data
         if (typeof FirebaseSync !== 'undefined' && FirebaseSync.isOnline) {
             FirebaseSync.clearAllData(resetAt);
@@ -564,13 +566,6 @@ const Storage = {
         this.saveGuestList(newList);
         this.init(); // Seed tabs for the new names
         return { added, skipped, total: newList.length };
-    },
-
-    /**
-     * Reset guest list to defaults from config.
-     */
-    resetGuestList() {
-        localStorage.removeItem(this._key('customGuests'));
     },
 
     // ==========================================================================

@@ -1983,3 +1983,24 @@ body {
     border-radius: 50%;
     overflow: hidden;
 }
+
+/* ==========================================================================
+   Lege gastenlijst
+   ========================================================================== */
+
+.empty-guest-list {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-light);
+}
+
+.empty-guest-list p {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.empty-guest-list .section-hint {
+    font-weight: 400;
+}
