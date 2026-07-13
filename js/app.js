@@ -715,10 +715,9 @@ const App = {
 
         const cashTip = !tab.paid ? `
             <div class="cash-tip">
-                <strong>💶 Tip voor het afrekenen:</strong> betaal je aan het eind van de week contant,
-                dan krijg je een gratis drankje voor onderweg! 🥤 Boven op de camping is geen
-                pinautomaat — pinnen kan alleen beneden bij de receptie van de camping.
-                Contant is dus ook voor jou het makkelijkst.
+                💶 Je volledige rekening betaal je contant aan het einde van de week.
+                We hebben hier bij het Villa Vibes kamp helaas geen pinautomaat.
+                Als bedankje geven we je een gratis drankje mee voor onderweg!
             </div>
         ` : '';
 
