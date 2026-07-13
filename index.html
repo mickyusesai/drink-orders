@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Camping du Lac - Honesty Bar</title>
-    <link rel="stylesheet" href="css/styles.css?v=7">
+    <link rel="stylesheet" href="css/styles.css?v=8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@
         <!-- Success Popup -->
         <div id="success-overlay" class="success-overlay">
             <div class="success-content">
-                <button class="close-popup-link" onclick="App.closePopupAndReset()">terug naar hoofdscherm</button>
+                <button class="close-popup-link" onclick="App.orderAnotherDrink()">nog iets anders?</button>
                 <div class="success-icon">
                     <svg viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
@@ -45,7 +45,7 @@
                 <div class="success-message"></div>
                 <div class="success-total"></div>
                 <div class="success-actions">
-                    <button class="another-drink-btn" onclick="App.orderAnotherDrink()">Nog iets anders?</button>
+                    <button class="another-drink-btn" onclick="App.closePopupAndReset()">Terug naar hoofdscherm</button>
                 </div>
                 <div class="success-footer">
                     <button class="undo-link" onclick="App.undoLastDrink()">Ongedaan maken</button>
@@ -82,7 +82,15 @@
                     </div>
                     <button class="view-total-btn" onclick="App.showMyTab()">Bekijk totaal</button>
                 </div>
-                <p class="section-hint drinks-hint">Tik op jouw drankje om deze toe te voegen</p>
+                <div class="drinks-hint-row">
+                    <p class="section-hint drinks-hint">Tik op jouw drankje om deze toe te voegen</p>
+                    <button class="cash-info-toggle" onclick="App.toggleCashInfo()">💶 Contant betalen = gratis drankje</button>
+                </div>
+                <div id="cash-info" class="cash-info">
+                    Betaal aan het eind van de week contant, dan krijg je bij het afrekenen een gratis
+                    drankje voor onderweg! 🥤 Boven op de camping is geen pinautomaat — pinnen kan alleen
+                    beneden bij de receptie van de camping. Contant is dus ook voor jou het makkelijkst.
+                </div>
                 <div id="drink-buttons" class="drink-categories"></div>
             </section>
         </main>
@@ -94,9 +102,8 @@
                     <h2>Beheer Overzicht</h2>
                 </div>
 
-                <div id="admin-summary" class="admin-summary"></div>
-
                 <div class="admin-actions">
+                    <button class="export-btn" onclick="Admin.showWeekOverview()">Weekoverzicht</button>
                     <button class="export-btn" onclick="Admin.showPrintView()">Printen</button>
                     <button class="export-btn" onclick="Admin.copyCSVToClipboard()">Kopieer CSV</button>
                     <button class="export-btn" onclick="Admin.exportCSV()">Download CSV</button>
@@ -233,10 +240,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <!-- App Scripts -->
-    <script src="js/config.js?v=7"></script>
-    <script src="js/firebase.js?v=7"></script>
-    <script src="js/storage.js?v=7"></script>
-    <script src="js/admin.js?v=7"></script>
-    <script src="js/app.js?v=7"></script>
+    <script src="js/config.js?v=8"></script>
+    <script src="js/firebase.js?v=8"></script>
+    <script src="js/storage.js?v=8"></script>
+    <script src="js/admin.js?v=8"></script>
+    <script src="js/app.js?v=8"></script>
 </body>
 </html>

@@ -6,44 +6,77 @@
 
 const Admin = {
     /**
-     * Render the admin view.
+     * Render the admin view. Revenue figures deliberately live in the
+     * separate week overview modal, not on this screen — staff who only
+     * mark tabs as paid shouldn't be looking at the totals.
      */
     renderAdminView() {
-        this.renderSummary();
         this.renderCategoryToggles();
         this.renderGuestTable();
     },
 
     /**
-     * Render the summary statistics.
+     * Show the week overview: revenue summary + totals per drink.
      */
-    renderSummary() {
+    showWeekOverview() {
         const summary = Storage.getSummary();
-        const container = document.getElementById('admin-summary');
+        const drinkTotals = Storage.getDrinkTotals();
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
 
         const paidSplit = (summary.totalPaidCash > 0 || summary.totalPaidCard > 0)
             ? `<div class="summary-sub">contant ${App.formatPrice(summary.totalPaidCash)} · PIN ${App.formatPrice(summary.totalPaidCard)}</div>`
             : '';
 
-        container.innerHTML = `
-            <div class="summary-card total">
-                <div class="summary-value">${App.formatPrice(summary.totalRevenue)}</div>
-                <div class="summary-label">Totale Omzet</div>
+        let drinksHtml = '<p class="placeholder-text">Nog geen bestellingen deze week.</p>';
+        if (drinkTotals.length > 0) {
+            drinksHtml = `
+                <table class="admin-table drink-totals-table">
+                    <thead><tr><th>Item</th><th>Aantal</th><th>Omzet</th></tr></thead>
+                    <tbody>
+                        ${drinkTotals.map(item => `
+                            <tr>
+                                <td>${this.escapeDisplay(item.name)}</td>
+                                <td>${item.count}x</td>
+                                <td>${App.formatPrice(item.total)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Weekoverzicht</h2>
+                <button class="close-btn" onclick="Admin.closeModal()">&times;</button>
             </div>
-            <div class="summary-card paid">
-                <div class="summary-value">${App.formatPrice(summary.totalPaid)}</div>
-                <div class="summary-label">Betaald (${summary.paidCount})</div>
-                ${paidSplit}
-            </div>
-            <div class="summary-card unpaid">
-                <div class="summary-value">${App.formatPrice(summary.totalUnpaid)}</div>
-                <div class="summary-label">Open (${summary.unpaidCount})</div>
-            </div>
-            <div class="summary-card guests">
-                <div class="summary-value">${summary.guestCount}</div>
-                <div class="summary-label">Gasten met Tab</div>
+            <div class="modal-body">
+                <div class="admin-summary">
+                    <div class="summary-card total">
+                        <div class="summary-value">${App.formatPrice(summary.totalRevenue)}</div>
+                        <div class="summary-label">Totale Omzet</div>
+                    </div>
+                    <div class="summary-card paid">
+                        <div class="summary-value">${App.formatPrice(summary.totalPaid)}</div>
+                        <div class="summary-label">Betaald (${summary.paidCount})</div>
+                        ${paidSplit}
+                    </div>
+                    <div class="summary-card unpaid">
+                        <div class="summary-value">${App.formatPrice(summary.totalUnpaid)}</div>
+                        <div class="summary-label">Open (${summary.unpaidCount})</div>
+                    </div>
+                    <div class="summary-card guests">
+                        <div class="summary-value">${summary.guestCount}</div>
+                        <div class="summary-label">Gasten met Tab</div>
+                    </div>
+                </div>
+                <h4>Totalen per item</h4>
+                ${drinksHtml}
             </div>
         `;
+
+        modal.classList.add('show');
     },
 
     /**
@@ -524,7 +557,7 @@ const Admin = {
     startNewWeek() {
         const confirmed = confirm(
             'Dit zal ALLE gasten tabs, betalingsgegevens EN de namenlijst PERMANENT VERWIJDEREN.\n\n' +
-            'De nieuwe week begint met een lege gastenlijst.\n' +
+            'De nieuwe week begint met een lege gastenlijst. Het menu blijft behouden.\n' +
             'Er wordt automatisch een backup gemaakt voordat de gegevens worden gewist.\n\n' +
             'Weet je zeker dat je een nieuwe week wilt starten?'
         );

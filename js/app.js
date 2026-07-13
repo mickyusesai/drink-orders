@@ -8,6 +8,7 @@ const App = {
     selectedGuest: null,
     lastAddedDrink: null,
     undoTimeout: null,
+    inactivityTimer: null,
     currentView: 'guests',
     adminUnlocked: false,
 
@@ -171,6 +172,38 @@ const App = {
             Admin.renderAdminView();
         } else if (viewName === 'guests') {
             this.renderGuestButtons();
+        }
+
+        // Als iemand een naam aantikt maar niets bestelt, moet het scherm
+        // niet eeuwig op die naam blijven staan (risico op verkeerde
+        // bestellingen door de volgende gast).
+        if (viewName === 'drinks') {
+            this.resetInactivityTimer();
+        } else {
+            this.clearInactivityTimer();
+        }
+    },
+
+    /**
+     * (Her)start de inactiviteitstimer op het drankjesscherm.
+     */
+    resetInactivityTimer() {
+        this.clearInactivityTimer();
+        this.inactivityTimer = setTimeout(() => {
+            if (this.currentView !== 'drinks') return;
+            // Sluit eventuele open lagen en ga terug naar het hoofdscherm
+            document.getElementById('details-modal').classList.remove('show');
+            this.hideSuccessOverlay();
+            this.lastAddedDrink = null;
+            this.clearUndoTimeout();
+            this.goBackToGuests();
+        }, APP_CONFIG.inactivityTimeoutMs);
+    },
+
+    clearInactivityTimer() {
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+            this.inactivityTimer = null;
         }
     },
 
@@ -370,6 +403,16 @@ const App = {
             header.innerHTML = `<span class="category-name">${category.name}</span>`;
             categoryDiv.appendChild(header);
 
+            // Uitleg over glas/fles voor nieuwe gasten, alleen tot en met de
+            // dag van de eerste bestelling van de week
+            if (category.id === 'wijnen' && this.shouldShowWineInfo()) {
+                const infoBox = document.createElement('div');
+                infoBox.className = 'wine-info-box';
+                infoBox.textContent = 'Witte wijn en rosé wijn kun je per glas pakken uit de pakken. ' +
+                    'De flessen zijn slechts per fles beschikbaar. Koude wijnkoelers kun je vragen bij de keuken.';
+                categoryDiv.appendChild(infoBox);
+            }
+
             const itemsDiv = document.createElement('div');
             itemsDiv.className = 'category-items';
 
@@ -390,6 +433,21 @@ const App = {
             categoryDiv.appendChild(itemsDiv);
             container.appendChild(categoryDiv);
         });
+    },
+
+    /**
+     * De wijn-infobox is zichtbaar tot het einde van de eerste dag van de
+     * week (de kalenderdag van de allereerste bestelling).
+     */
+    shouldShowWineInfo() {
+        const first = Storage.getFirstOrderTimestamp();
+        if (!first) return true; // Nog niets besteld deze week
+
+        const firstDay = new Date(first);
+        const today = new Date();
+        return firstDay.getFullYear() === today.getFullYear() &&
+            firstDay.getMonth() === today.getMonth() &&
+            firstDay.getDate() === today.getDate();
     },
 
     /**
@@ -560,6 +618,10 @@ const App = {
             return;
         }
 
+        if (!confirm(`Weet je zeker dat je "${this.lastAddedDrink.drink.name}" wilt annuleren?`)) {
+            return; // Popup blijft staan, timer loopt gewoon door
+        }
+
         const { guestName, drink } = this.lastAddedDrink;
         const success = Storage.removeDrink(guestName, drink.id);
 
@@ -651,6 +713,15 @@ const App = {
             listHtml += '</div>';
         }
 
+        const cashTip = !tab.paid ? `
+            <div class="cash-tip">
+                <strong>💶 Tip voor het afrekenen:</strong> betaal je aan het eind van de week contant,
+                dan krijg je een gratis drankje voor onderweg! 🥤 Boven op de camping is geen
+                pinautomaat — pinnen kan alleen beneden bij de receptie van de camping.
+                Contant is dus ook voor jou het makkelijkst.
+            </div>
+        ` : '';
+
         content.innerHTML = `
             <div class="modal-header">
                 <h2>${this.escapeHtml(guestName)}</h2>
@@ -663,6 +734,7 @@ const App = {
                     <span>Totaal</span>
                     <span class="total-amount">${this.formatPrice(tab.total)}</span>
                 </div>
+                ${cashTip}
             </div>
             <div class="modal-footer my-tab-footer">
                 <button class="action-btn details-btn tab-close-btn" onclick="App.closeTabModal()">Sluiten</button>
@@ -677,6 +749,13 @@ const App = {
      */
     closeTabModal() {
         document.getElementById('details-modal').classList.remove('show');
+    },
+
+    /**
+     * Toggle the cash-payment info bubble on the drinks screen.
+     */
+    toggleCashInfo() {
+        document.getElementById('cash-info').classList.toggle('open');
     },
 
     /**
@@ -695,6 +774,15 @@ const App = {
                     }
                 }
             });
+        });
+
+        // Elke aanraking op het drankjesscherm telt als activiteit
+        ['click', 'touchstart'].forEach(eventName => {
+            document.addEventListener(eventName, () => {
+                if (this.currentView === 'drinks') {
+                    this.resetInactivityTimer();
+                }
+            }, { passive: true });
         });
 
         // Click on overlay background also closes and resets
