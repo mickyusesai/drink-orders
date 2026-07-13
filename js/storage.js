@@ -223,6 +223,47 @@ const Storage = {
     },
 
     /**
+     * Totals per drink for the whole week: [{ name, count, total }],
+     * sorted by revenue descending.
+     */
+    getDrinkTotals() {
+        const tabs = this.getAllTabs();
+        const totals = {};
+
+        Object.keys(tabs).forEach(guestName => {
+            (tabs[guestName].drinks || []).forEach(drink => {
+                if (!totals[drink.name]) {
+                    totals[drink.name] = { name: drink.name, count: 0, cents: 0 };
+                }
+                totals[drink.name].count++;
+                totals[drink.name].cents += Math.round((drink.price || 0) * 100);
+            });
+        });
+
+        return Object.values(totals)
+            .map(item => ({ name: item.name, count: item.count, total: item.cents / 100 }))
+            .sort((a, b) => b.total - a.total);
+    },
+
+    /**
+     * Timestamp of the very first order of this week (null if none yet).
+     */
+    getFirstOrderTimestamp() {
+        const tabs = this.getAllTabs();
+        let first = null;
+
+        Object.keys(tabs).forEach(guestName => {
+            (tabs[guestName].drinks || []).forEach(drink => {
+                if (drink.timestamp && (first === null || drink.timestamp < first)) {
+                    first = drink.timestamp;
+                }
+            });
+        });
+
+        return first;
+    },
+
+    /**
      * Export all data as CSV string.
      */
     exportCSV() {

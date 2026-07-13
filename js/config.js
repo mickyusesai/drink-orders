@@ -97,6 +97,15 @@ const DEFAULT_MENU = [
         ]
     },
     {
+        id: "wine-experience",
+        name: "Wine Experience",
+        color: "#6a1b9a", // Deep purple
+        toggleKey: "wine-experience", // Aan/uit te zetten in Beheer
+        items: [
+            { name: "Wine Experience", price: 25.00 }
+        ]
+    },
+    {
         id: "paninis",
         name: "Panini's",
         color: "#ff5722", // Deep orange
@@ -114,7 +123,10 @@ const DEFAULT_MENU = [
 
 const APP_CONFIG = {
     // Hoe lang de popup zichtbaar blijft voordat deze automatisch sluit (in milliseconden)
-    popupTimeoutMs: 5000,
+    popupTimeoutMs: 8000,
+
+    // Na hoeveel inactiviteit het drankjesscherm terugkeert naar het hoofdscherm
+    inactivityTimeoutMs: 30000,
 
     // Valutasymbool
     currency: "€",

@@ -311,17 +311,20 @@ body {
 }
 
 .undo-link {
-    font-size: 12px;
-    color: var(--color-text-light);
-    text-decoration: underline;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-error);
     cursor: pointer;
-    background: none;
-    border: none;
+    background: white;
+    border: 2px solid var(--color-error);
+    border-radius: var(--radius-full);
+    padding: 6px 16px;
     font-family: var(--font-main);
 }
 
 .undo-link:hover {
-    color: var(--color-error);
+    background: var(--color-error);
+    color: white;
 }
 
 .auto-close-hint {
@@ -2000,4 +2003,84 @@ body {
 
 .empty-guest-list .section-hint {
     font-weight: 400;
+}
+
+/* ==========================================================================
+   Wijn-infobox, contant-tip en weekoverzicht
+   ========================================================================== */
+
+.wine-info-box {
+    margin: var(--spacing-xs) var(--spacing-sm) 0;
+    padding: 10px 14px;
+    background: #f6effa;
+    border-left: 4px solid #7b2d5b;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: #4a2040;
+    line-height: 1.4;
+}
+
+.drinks-hint-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-xs);
+}
+
+.drinks-hint-row .drinks-hint {
+    margin-bottom: 0;
+}
+
+.cash-info-toggle {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-full);
+    padding: 4px 12px;
+    font-family: var(--font-main);
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+}
+
+.cash-info-toggle:hover {
+    background: #e6e6e6;
+}
+
+.cash-info {
+    display: none;
+    max-width: 640px;
+    margin: 0 auto var(--spacing-sm);
+    padding: 10px 16px;
+    background: #fff8e6;
+    border: 1px solid #f0e0b0;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: #6b5b2e;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.cash-info.open {
+    display: block;
+}
+
+.cash-tip {
+    margin-top: var(--spacing-sm);
+    padding: 12px 16px;
+    background: #fff8e6;
+    border: 1px solid #f0e0b0;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: #6b5b2e;
+    line-height: 1.5;
+}
+
+.drink-totals-table td:nth-child(2),
+.drink-totals-table td:nth-child(3),
+.drink-totals-table th:nth-child(2),
+.drink-totals-table th:nth-child(3) {
+    text-align: right;
+    white-space: nowrap;
 }
