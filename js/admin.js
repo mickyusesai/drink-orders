@@ -74,9 +74,21 @@ const Admin = {
                 <h4>Totalen per item</h4>
                 ${drinksHtml}
             </div>
+            <div class="modal-footer">
+                <button class="export-btn" onclick="Admin.downloadWeekOverview()">Download Weekoverzicht</button>
+            </div>
         `;
 
         modal.classList.add('show');
+    },
+
+    /**
+     * Download the week overview as CSV for record keeping.
+     */
+    downloadWeekOverview() {
+        const csv = Storage.exportWeekOverviewCSV();
+        const date = new Date().toISOString().slice(0, 10);
+        this.downloadFile(csv, `weekoverzicht-${date}.csv`, 'text/csv');
     },
 
     /**
@@ -95,14 +107,17 @@ const Admin = {
         const container = document.getElementById('admin-guests-table');
         const tabs = Storage.getAllTabs();
 
-        // Sort: unpaid first, then by total descending
+        // Same order as the name grid on the main screen, so staff can find
+        // people the same way in both places; guests with orders who are no
+        // longer on the list come last.
+        const guestList = Storage.getGuestList();
+        const listOrder = new Map(guestList.map((name, index) => [name, index]));
         const sortedGuests = Object.keys(tabs)
             .filter(name => tabs[name].drinks.length > 0)
             .sort((a, b) => {
-                if (tabs[a].paid !== tabs[b].paid) {
-                    return tabs[a].paid ? 1 : -1;
-                }
-                return tabs[b].total - tabs[a].total;
+                const ai = listOrder.has(a) ? listOrder.get(a) : Infinity;
+                const bi = listOrder.has(b) ? listOrder.get(b) : Infinity;
+                return ai - bi;
             });
 
         if (sortedGuests.length === 0) {
