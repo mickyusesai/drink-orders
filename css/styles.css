@@ -493,15 +493,19 @@ body {
 }
 
 .ordering-for {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--color-text-light);
     text-transform: uppercase;
 }
 
 .guest-name-display {
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 800;
-    color: var(--color-primary-dark);
+    color: white;
+    background: var(--color-primary-dark);
+    padding: 4px 18px;
+    border-radius: var(--radius-full);
+    display: inline-block;
 }
 
 .guest-total-display {

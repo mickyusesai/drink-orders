@@ -264,6 +264,31 @@ const Storage = {
     },
 
     /**
+     * Export the week overview (summary + totals per item) as CSV,
+     * for keeping historical records. Dutch Excel format (BOM + semicolons).
+     */
+    exportWeekOverviewCSV() {
+        const summary = this.getSummary();
+        const drinkTotals = this.getDrinkTotals();
+        const euro = amount => amount.toFixed(2).replace('.', ',');
+        const date = new Date().toLocaleDateString(APP_CONFIG.locale);
+
+        let csv = "﻿Weekoverzicht Honesty Bar;" + date + "\n\n";
+        csv += "Totale omzet (EUR);" + euro(summary.totalRevenue) + "\n";
+        csv += "Betaald (EUR);" + euro(summary.totalPaid) + "\n";
+        csv += "Waarvan contant (EUR);" + euro(summary.totalPaidCash) + "\n";
+        csv += "Waarvan PIN (EUR);" + euro(summary.totalPaidCard) + "\n";
+        csv += "Open (EUR);" + euro(summary.totalUnpaid) + "\n";
+        csv += "Gasten met tab;" + summary.guestCount + "\n";
+        csv += "\nItem;Aantal;Omzet (EUR)\n";
+        drinkTotals.forEach(item => {
+            csv += `"${item.name}";${item.count};${euro(item.total)}\n`;
+        });
+
+        return csv;
+    },
+
+    /**
      * Export all data as CSV string.
      */
     exportCSV() {
