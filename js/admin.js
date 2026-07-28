@@ -16,11 +16,40 @@ const Admin = {
     },
 
     /**
-     * Show the week overview: revenue summary + totals per drink.
+     * One labeled bar row for the overview charts. Identity and value are
+     * carried by text; the colored bar only visualises the magnitude.
+     */
+    _chartRowHtml(label, value, count, fraction, color) {
+        const width = Math.max(3, Math.round(fraction * 100));
+        return `
+            <div class="chart-row">
+                <span class="chart-label">${this.escapeDisplay(label)}</span>
+                <div class="chart-track">
+                    <div class="chart-bar" style="width: ${width}%; background-color: ${this.escapeAttr(color)}"></div>
+                </div>
+                <span class="chart-value">${App.formatPrice(value)} · ${count}x</span>
+            </div>
+        `;
+    },
+
+    _chartHtml(rows, colorOf) {
+        if (rows.length === 0) return '';
+        const max = Math.max(...rows.map(r => r.total));
+        return `<div class="chart-block">${rows.map(row =>
+            this._chartRowHtml(row.label || row.name, row.total, row.count, max > 0 ? row.total / max : 0, colorOf(row))
+        ).join('')}</div>`;
+    },
+
+    /**
+     * Show the week overview: revenue summary, per-day and per-category
+     * charts, extra statistics, and totals per drink.
      */
     showWeekOverview() {
         const summary = Storage.getSummary();
         const drinkTotals = Storage.getDrinkTotals();
+        const daily = Storage.getDailyTotals();
+        const categories = Storage.getCategoryTotals();
+        const stats = Storage.getWeekStats();
         const modal = document.getElementById('details-modal');
         const content = document.getElementById('details-content');
 
@@ -71,6 +100,24 @@ const Admin = {
                         <div class="summary-label">Gasten met Tab</div>
                     </div>
                 </div>
+                ${daily.length > 0 ? `
+                    <h4>Omzet per dag</h4>
+                    ${this._chartHtml(daily, () => 'var(--color-primary-dark)')}
+                ` : ''}
+                ${categories.length > 0 ? `
+                    <h4>Omzet per categorie</h4>
+                    ${this._chartHtml(categories, row => row.color)}
+                ` : ''}
+                ${stats.busiestDay ? `
+                    <h4>Statistieken</h4>
+                    <ul class="week-stats">
+                        <li>Gemiddelde besteding per gast: <strong>${App.formatPrice(stats.avgPerGuest)}</strong></li>
+                        <li>Drukste dag: <strong>${this.escapeDisplay(stats.busiestDay.label)}</strong> (${App.formatPrice(stats.busiestDay.total)})</li>
+                        ${stats.busiestHour ? `<li>Drukste uur: <strong>${stats.busiestHour.label}</strong> (${stats.busiestHour.count} bestellingen)</li>` : ''}
+                        ${stats.topGuests.length > 0 ? `<li>Grootste rekeningen: ${stats.topGuests.map(g =>
+                            `${this.escapeDisplay(g.name)} (${App.formatPrice(g.total)})`).join(' · ')}</li>` : ''}
+                    </ul>
+                ` : ''}
                 <h4>Totalen per item</h4>
                 ${drinksHtml}
             </div>

@@ -246,6 +246,118 @@ const Storage = {
     },
 
     /**
+     * Totals per calendar day: [{ dateKey, label, count, total }], chronological.
+     */
+    getDailyTotals() {
+        const tabs = this.getAllTabs();
+        const days = {};
+
+        Object.keys(tabs).forEach(guestName => {
+            (tabs[guestName].drinks || []).forEach(drink => {
+                if (!drink.timestamp) return;
+                const date = new Date(drink.timestamp);
+                const key = date.getFullYear() + '-' +
+                    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(date.getDate()).padStart(2, '0');
+                if (!days[key]) {
+                    days[key] = {
+                        dateKey: key,
+                        label: date.toLocaleDateString(APP_CONFIG.locale, {
+                            weekday: 'short', day: 'numeric', month: 'short'
+                        }),
+                        count: 0,
+                        cents: 0
+                    };
+                }
+                days[key].count++;
+                days[key].cents += Math.round((drink.price || 0) * 100);
+            });
+        });
+
+        return Object.values(days)
+            .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+            .map(day => ({ dateKey: day.dateKey, label: day.label, count: day.count, total: day.cents / 100 }));
+    },
+
+    /**
+     * Totals per menu category: [{ name, color, count, total }], revenue
+     * descending. Items no longer on the menu (e.g. Receptie items) are
+     * grouped under "Overig".
+     */
+    getCategoryTotals() {
+        const itemCategory = {};
+        this.getMenu().forEach(category => {
+            category.items.forEach(item => {
+                if (!(item.name in itemCategory)) {
+                    itemCategory[item.name] = { name: category.name, color: category.color };
+                }
+            });
+        });
+
+        const tabs = this.getAllTabs();
+        const totals = {};
+        Object.keys(tabs).forEach(guestName => {
+            (tabs[guestName].drinks || []).forEach(drink => {
+                const category = itemCategory[drink.name] || { name: 'Overig', color: '#607d8b' };
+                if (!totals[category.name]) {
+                    totals[category.name] = { name: category.name, color: category.color, count: 0, cents: 0 };
+                }
+                totals[category.name].count++;
+                totals[category.name].cents += Math.round((drink.price || 0) * 100);
+            });
+        });
+
+        return Object.values(totals)
+            .map(item => ({ name: item.name, color: item.color, count: item.count, total: item.cents / 100 }))
+            .sort((a, b) => b.total - a.total);
+    },
+
+    /**
+     * Extra week statistics: average spend per guest with a tab, busiest
+     * day, busiest hour, and the top 5 guests by revenue.
+     */
+    getWeekStats() {
+        const summary = this.getSummary();
+        const daily = this.getDailyTotals();
+        const tabs = this.getAllTabs();
+
+        const avgPerGuest = summary.guestCount > 0
+            ? Math.round(summary.totalRevenue / summary.guestCount * 100) / 100
+            : 0;
+
+        let busiestDay = null;
+        daily.forEach(day => {
+            if (!busiestDay || day.total > busiestDay.total) busiestDay = day;
+        });
+
+        const hourCounts = {};
+        Object.keys(tabs).forEach(guestName => {
+            (tabs[guestName].drinks || []).forEach(drink => {
+                if (!drink.timestamp) return;
+                const hour = new Date(drink.timestamp).getHours();
+                hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+            });
+        });
+        let busiestHour = null;
+        Object.keys(hourCounts).forEach(hour => {
+            if (!busiestHour || hourCounts[hour] > busiestHour.count) {
+                busiestHour = {
+                    label: `${hour}:00–${Number(hour) + 1}:00`,
+                    count: hourCounts[hour]
+                };
+            }
+        });
+
+        const topGuests = Object.keys(tabs)
+            .filter(name => tabs[name].drinks.length > 0)
+            .map(name => ({ name, total: tabs[name].total }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 5);
+
+        return { avgPerGuest, busiestDay, busiestHour, topGuests };
+    },
+
+    /**
      * Timestamp of the very first order of this week (null if none yet).
      */
     getFirstOrderTimestamp() {
@@ -280,6 +392,25 @@ const Storage = {
         csv += "Waarvan PIN (EUR);" + euro(summary.totalPaidCard) + "\n";
         csv += "Open (EUR);" + euro(summary.totalUnpaid) + "\n";
         csv += "Gasten met tab;" + summary.guestCount + "\n";
+        const stats = this.getWeekStats();
+        csv += "Gemiddelde besteding per gast (EUR);" + euro(stats.avgPerGuest) + "\n";
+        if (stats.busiestDay) {
+            csv += "Drukste dag;" + stats.busiestDay.label + "\n";
+        }
+        if (stats.busiestHour) {
+            csv += "Drukste uur;" + stats.busiestHour.label + "\n";
+        }
+
+        csv += "\nDatum;Aantal;Omzet (EUR)\n";
+        this.getDailyTotals().forEach(day => {
+            csv += `"${day.label}";${day.count};${euro(day.total)}\n`;
+        });
+
+        csv += "\nCategorie;Aantal;Omzet (EUR)\n";
+        this.getCategoryTotals().forEach(category => {
+            csv += `"${category.name}";${category.count};${euro(category.total)}\n`;
+        });
+
         csv += "\nItem;Aantal;Omzet (EUR)\n";
         drinkTotals.forEach(item => {
             csv += `"${item.name}";${item.count};${euro(item.total)}\n`;
