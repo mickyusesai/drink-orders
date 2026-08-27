@@ -24,6 +24,15 @@ const GUEST_NAMES = [];
 
 const DEFAULT_MENU = [
     {
+        id: "specials",
+        name: "Specials",
+        color: "#e91e63", // Framboos-roze
+        toggleKey: "specials", // Aan/uit te zetten in Beheer
+        items: [
+            { name: "Sangria", price: 6.50 }
+        ]
+    },
+    {
         id: "bieren",
         name: "Bieren",
         color: "#f5a623", // Warm amber

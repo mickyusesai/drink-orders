@@ -220,7 +220,7 @@ const App = {
      */
     getItemIcon(itemName) {
         const name = itemName.toLowerCase();
-        if (name.includes('wijn') || name.includes('wine') || name.includes('fles wijn')) return 'wine.png';
+        if (name.includes('wijn') || name.includes('wine') || name.includes('sangria')) return 'wine.png';
         if (name.includes('bier') || name.includes('ipa') || name.includes('desperados')) return 'beer.png';
         if (name.includes('water') && !name.includes('watersport')) return 'water.png';
         if (name.includes('chips')) return 'chips.png';
